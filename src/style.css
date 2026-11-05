@@ -1,42 +1,22 @@
 /* Layout: one centered 1120px column inside full-width bands; dark brown header and footer bracket cream sections, the shop grid sits right under the Candy Jade feature. */
 :root{
-  --bg:#FAEED8; --bg-alt:#F0E1C4; --surface:#FFFAF0;
-  --ink:#3A2218; --ink-2:#4A3326; --ink-soft:#6B5446;
-  --line:#E8D6B4; --line-strong:#CDB690;
-  --gold:#C9A24B; --on-gold:#2B1A12; --gold-ink:#7A5A18; --rose:#8A5A44;
-  --deep:#2B1A12; --deep-ink:#FAEED8; --deep-soft:#E2D2B6; --deep-line:#6E5643;
-  --btn:#3A2218; --btn-ink:#FAEED8;
-  --ok:#2F5E40; --ok-bg:#DDEBDA; --muted-bg:#E9DCC6; --danger:#9B2C1F;
-  --shade:rgba(43,26,18,.5); --shadow:0 30px 80px rgba(43,26,18,.28);
+  /* Ashley's brand, sampled from her logo: cream ground, deep brown type, gold heart, blush accent. One light look by design. */
+  color-scheme:light;
+  --bg:#FEF9F3; --bg-alt:#F7EDE0; --surface:#FFFDF9;
+  --ink:#42281A; --ink-2:#4F3426; --ink-soft:#6E5546;
+  --line:#EADCC8; --line-strong:#D3BE9F;
+  --gold:#C8A15C; --on-gold:#2E1B10; --gold-ink:#7E5C1C; --rose:#9A5845; --blush:#E2A18D; --blush-bg:#F8E3DB;
+  --deep:#3A2216; --deep-ink:#FEF9F3; --deep-soft:#E6D6C2; --deep-line:#6E5643;
+  --btn:#42281A; --btn-ink:#FEF9F3;
+  --ok:#2F5E40; --ok-bg:#DDEBDA; --muted-bg:#F1E3D2; --danger:#9B2C1F;
+  --shade:rgba(46,27,16,.5); --shadow:0 30px 80px rgba(46,27,16,.25);
   --display:'Marcellus','Cormorant Garamond',Georgia,serif;
   --body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
   --gutter:24px;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#1C130D; --bg-alt:#241912; --surface:#2A1E16;
-  --ink:#F3E6CF; --ink-2:#E6D5BA; --ink-soft:#BFA98A;
-  --line:#3E2E22; --line-strong:#5E4836;
-  --gold:#D4AE58; --on-gold:#1C130D; --gold-ink:#DDBB6A; --rose:#D9A088;
-  --deep:#120B07; --deep-ink:#F3E6CF; --deep-soft:#CDB998; --deep-line:#5A4533;
-  --btn:#D4AE58; --btn-ink:#1C130D;
-  --ok:#9BD0A9; --ok-bg:#20372A; --muted-bg:#3A2B20; --danger:#F08C7C;
-  --shade:rgba(0,0,0,.6); --shadow:0 30px 80px rgba(0,0,0,.5);
-  color-scheme:dark;
-}}
-:root[data-theme="dark"]{
-  --bg:#1C130D; --bg-alt:#241912; --surface:#2A1E16;
-  --ink:#F3E6CF; --ink-2:#E6D5BA; --ink-soft:#BFA98A;
-  --line:#3E2E22; --line-strong:#5E4836;
-  --gold:#D4AE58; --on-gold:#1C130D; --gold-ink:#DDBB6A; --rose:#D9A088;
-  --deep:#120B07; --deep-ink:#F3E6CF; --deep-soft:#CDB998; --deep-line:#5A4533;
-  --btn:#D4AE58; --btn-ink:#1C130D;
-  --ok:#9BD0A9; --ok-bg:#20372A; --muted-bg:#3A2B20; --danger:#F08C7C;
-  --shade:rgba(0,0,0,.6); --shadow:0 30px 80px rgba(0,0,0,.5);
-  color-scheme:dark;
-}
 @media (max-width:520px){:root{--gutter:16px}}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;margin:0}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--deep)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
 a{color:var(--gold-ink)}
 a:hover{color:var(--ink)}
 :focus-visible{outline:2px solid var(--gold);outline-offset:3px}
@@ -217,3 +197,24 @@ a.card-open{text-decoration:none}
 a.card-open:hover{color:inherit}
 .card-img,.card-text,.card-price{display:flex}
 .card-img{display:block}
+
+/* masthead: her wordmark on cream, banner as the hero image */
+.masthead{background:var(--bg);color:var(--ink)}
+.masthead .nav{padding-top:12px;border-bottom:1px solid var(--line)}
+.masthead .brand{padding:4px 0}
+.masthead .brand img{height:76px;width:auto;border-radius:0}
+.masthead .nav-links a:not(.btn){color:var(--ink-soft)}
+.masthead .nav-links a:not(.btn):hover{color:var(--ink)}
+.masthead .hero{display:flex;flex-direction:column;align-items:stretch;gap:36px;padding-block:28px 64px}
+.hero-banner{display:block;width:100%;height:auto;aspect-ratio:2172/724;object-fit:cover;border-radius:24px}
+.masthead .hero-copy{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px 48px;flex:none}
+.masthead .hero h1{flex:1 1 420px;margin:0;font-size:clamp(34px,4.6vw,54px);line-height:1.08;max-width:15ch}
+.masthead .hero p.sub{flex:1 1 340px;margin:0;color:var(--ink-soft);font-size:18px;max-width:46ch}
+.masthead .actions{flex:1 1 100%}
+.promise{border-top:1px solid var(--line)}
+.dia{fill:var(--blush)}
+#story{white-space:pre-line;color:var(--ink-2);font-size:18px}
+@media (max-width:640px){
+  .masthead .brand img{height:58px}
+  .hero-banner{border-radius:16px}
+}

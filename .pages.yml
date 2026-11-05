@@ -13,7 +13,7 @@ content:
     format: json
     filename: "{primary}.json"
     view:
-      fields: [name, collection, price, status, show]
+      fields: [name, type, price, status, show]
       primary: name
       sort: [name]
     fields:
@@ -33,11 +33,29 @@ content:
         options:
           multiple: true
         description: The first photo is the cover. Square photos look best; they are resized automatically.
+      - name: type
+        label: Type of piece
+        type: select
+        required: true
+        default: necklace
+        options:
+          values:
+            - value: necklace
+              label: Necklace
+            - value: bracelet
+              label: Bracelet
+            - value: set
+              label: Bracelet set
+            - value: wrap
+              label: Convertible wrap
+            - value: earrings
+              label: Earrings
+            - value: other
+              label: Other
       - name: collection
         label: Collection
         type: select
-        required: true
-        default: candy-jade
+        description: Optional. Leave blank if the piece isn't part of a collection.
         options:
           values:
             - value: candy-jade
@@ -77,6 +95,10 @@ content:
         label: Description
         type: text
         description: Two or three sentences about how it looks and feels, and what it stacks with.
+      - name: etsy
+        label: Etsy listing link
+        type: string
+        description: Optional. Paste the piece's Etsy link to show a "Buy on Etsy" button next to "Email Ashley".
       - name: order
         label: Position on the shop page
         type: number
@@ -102,6 +124,10 @@ content:
       - name: tiktok
         label: TikTok handle
         type: string
+      - name: etsy
+        label: Etsy shop link
+        type: string
+        description: For example https://www.etsy.com/shop/MadeintheMoodJewelry
       - name: turnaround
         label: Typical turnaround
         type: string

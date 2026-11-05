@@ -11,6 +11,16 @@
     { key: 'aurum', name: 'Aurum' },
     { key: 'aura', name: 'Aura' }
   ];
+  var TYPES = [
+    { key: 'necklace', name: 'Necklaces', one: 'Necklace' },
+    { key: 'bracelet', name: 'Bracelets', one: 'Bracelet' },
+    { key: 'set', name: 'Bracelet sets', one: 'Bracelet set' },
+    { key: 'wrap', name: 'Wraps', one: 'Convertible wrap' },
+    { key: 'earrings', name: 'Earrings', one: 'Earrings' },
+    { key: 'other', name: 'More', one: '' }
+  ];
+  function typeName(k) { for (var i = 0; i < TYPES.length; i++) if (TYPES[i].key === k) return TYPES[i].one; return ''; }
+  function eyebrow(p) { return [colName(p.collection), typeName(p.type)].filter(Boolean).join(' · '); }
   var STATUS = { ready: 'Ready to ship', made: 'Made to order', sold: 'Sold out' };
   var filter = 'all';
   var mood = { mood: '', palettes: [], piece: '' };
@@ -33,15 +43,17 @@
     }
     return n;
   }
-  function src(path) { return BASE + path; }
+  /* Resolve against the page's address at load, so paths stay right after the URL changes to a piece. */
+  var ROOT = new URL(BASE || './', location.href).href;
+  function src(path) { return new URL(path, ROOT).href; }
   function money(n) { return typeof n === 'number' ? '$' + (Number.isInteger(n) ? String(n) : n.toFixed(2)) : ''; }
   function colName(k) { for (var i = 0; i < COLLECTIONS.length; i++) if (COLLECTIONS[i].key === k) return COLLECTIONS[i].name; return ''; }
   function handle(s) { return String(s || '').trim().replace(/^@+/, ''); }
-  function pieceUrl(p) { return BASE + 'pieces/' + p.slug + '/'; }
+  function pieceUrl(p) { return new URL('pieces/' + p.slug + '/', ROOT).href; }
 
   var EMAIL = String(S.email || '').trim();
   function mailto(subject, body) {
-    if (!EMAIL) return BASE + '#contact';
+    if (!EMAIL) return ROOT + '#contact';
     return 'mailto:' + EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
   }
   var INTRO = 'Hi Ashley,\n\n';
@@ -51,8 +63,8 @@
     custom: function () { return mailto('Custom design request', INTRO + 'I would like you to design something for me. Here is what I have in mind:' + DETAILS); }
   };
   function pieceMail(p) {
-    var line = '"' + p.name + '" from ' + colName(p.collection) + (typeof p.price === 'number' ? ' (' + money(p.price) + ')' : '');
-    return mailto('Order: ' + p.name, INTRO + 'I would love to order ' + line + '.\n' + new URL(pieceUrl(p), location.href).href + '\n\nSize:\nAny color changes:\nWhen I need it by:\nShipping zip code:\n\nThank you!');
+    var line = '"' + p.name + '"' + (typeof p.price === 'number' ? ' (' + money(p.price) + ')' : '');
+    return mailto('Order: ' + p.name, INTRO + 'I would love to order ' + line + '.\n' + pieceUrl(p) + '\n\nSize:\nAny color changes:\nWhen I need it by:\nShipping zip code:\n\nThank you!');
   }
   function rangeText(key) {
     var prices = PIECES.filter(function (p) { return p.collection === key && typeof p.price === 'number'; }).map(function (p) { return p.price; });
@@ -96,6 +108,10 @@
     $('#aura-price').textContent = rangeText('aura');
     var t = String(S.turnaround || '').trim();
     $('#turnaround').textContent = t ? ' Typical turnaround: ' + t.replace(/\.$/, '') + '.' : '';
+    $$('[data-needs-collection]').forEach(function (n) {
+      var key = n.getAttribute('data-needs-collection');
+      n.hidden = !PIECES.some(function (p) { return key ? p.collection === key : !!p.collection; });
+    });
     var story = $('#story'), st = String(S.story || '').trim();
     story.textContent = st; story.hidden = !st;
     renderContact();
@@ -111,20 +127,22 @@
     var v = handle(S.venmo), ig = handle(S.instagram), tt = handle(S.tiktok);
     if (v) rows.push(el('a', { href: 'https://venmo.com/u/' + encodeURIComponent(v), target: '_blank', rel: 'noopener' }, 'Venmo @' + v));
     if (ig) rows.push(el('a', { href: 'https://instagram.com/' + encodeURIComponent(ig), target: '_blank', rel: 'noopener' }, 'Instagram @' + ig));
+    var etsy = String(S.etsy || '').trim();
+    if (/^https:\/\/(www\.)?etsy\.com\//.test(etsy)) rows.push(el('a', { href: etsy, target: '_blank', rel: 'noopener' }, 'Shop on Etsy'));
     if (tt) rows.push(el('a', { href: 'https://www.tiktok.com/@' + encodeURIComponent(tt), target: '_blank', rel: 'noopener' }, 'TikTok @' + tt));
     list.replaceChildren.apply(list, rows);
   }
 
   function renderShop() {
     var counts = {};
-    PIECES.forEach(function (p) { counts[p.collection] = (counts[p.collection] || 0) + 1; });
-    var opts = [{ key: 'all', name: 'All pieces' }].concat(COLLECTIONS.filter(function (c) { return counts[c.key]; }));
+    PIECES.forEach(function (p) { counts[p.type] = (counts[p.type] || 0) + 1; if (p.collection) counts[p.collection] = (counts[p.collection] || 0) + 1; });
+    var opts = [{ key: 'all', name: 'All pieces' }].concat(TYPES.filter(function (c) { return counts[c.key]; }), COLLECTIONS.filter(function (c) { return counts[c.key]; }));
     if (!opts.some(function (o) { return o.key === filter; })) filter = 'all';
     var box = $('#shop-filters');
     box.replaceChildren.apply(box, opts.length > 2 ? opts.map(function (o) {
       return el('button', { type: 'button', class: 'pill', 'aria-pressed': String(filter === o.key), onclick: function () { filter = o.key; renderShop(); } }, o.name);
     }) : []);
-    var shown = PIECES.filter(function (p) { return filter === 'all' || p.collection === filter; });
+    var shown = PIECES.filter(function (p) { return filter === 'all' || p.type === filter || p.collection === filter; });
     var grid = $('#shop-grid');
     grid.replaceChildren.apply(grid, shown.map(card));
     grid.hidden = shown.length === 0;
@@ -144,7 +162,7 @@
       if (ev.metaKey || ev.ctrlKey || ev.shiftKey) return;
       ev.preventDefault(); openPiece(p, true);
     } }, img, el('span', { class: 'card-text' },
-      el('span', { class: 'card-col' }, colName(p.collection)),
+      el('span', { class: 'card-col' }, eyebrow(p)),
       el('span', { class: 'card-name' }, p.name),
       price));
     return el('div', { class: 'card' }, a);
@@ -187,13 +205,14 @@
       p.status === 'sold'
         ? el('a', { class: 'btn btn-dark', href: mailto('Something like ' + p.name, INTRO + 'I love "' + p.name + '". Could you make something like it for me?' + DETAILS) }, 'Ask for one like it')
         : el('a', { class: 'btn btn-dark', href: pieceMail(p) }, 'Email Ashley to order'),
+      p.etsy && p.status !== 'sold' ? el('a', { class: 'btn btn-ghost', href: p.etsy, target: '_blank', rel: 'noopener' }, 'Buy on Etsy') : null,
       EMAIL ? el('p', null, 'Or write to ' + EMAIL + '.') : null,
       EMAIL ? el('button', { type: 'button', class: 'btn-text', onclick: function (ev) { copyText(EMAIL, ev.currentTarget); } }, 'Copy email address') : null,
       el('p', null, 'Ashley replies personally to confirm size and shipping.' + (v ? ' Payment is by Venmo @' + v + ' once you have agreed on the details.' : '')));
     $('#pd-body').replaceChildren(
       el('div', { style: 'min-width:0' }, main, thumbs),
       el('div', { class: 'pd-info' },
-        el('p', { class: 'eyebrow' }, colName(p.collection)),
+        el('p', { class: 'eyebrow' }, eyebrow(p)),
         el('h2', { id: 'pd-name' }, p.name),
         el('div', { class: 'pd-price' },
           el('span', null, typeof p.price === 'number' ? money(p.price) : 'Ask for price'),

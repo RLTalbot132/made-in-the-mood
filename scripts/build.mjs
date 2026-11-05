@@ -9,6 +9,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, '_site');
 const SITE_URL = (process.env.SITE_URL || '').replace(/\/?$/, '/');
 const COLLECTIONS = ['candy-jade', 'aurum', 'aura'];
+const TYPES = ['necklace', 'bracelet', 'set', 'wrap', 'earrings', 'other'];
 const STATUSES = ['ready', 'made', 'sold'];
 
 let sharp = null;
@@ -52,7 +53,7 @@ async function processPhoto(ref) {
 // ---------- content ----------
 const settingsRaw = await readJson(path.join(ROOT, 'content/settings.json'), {});
 const settings = {};
-for (const k of ['email', 'venmo', 'instagram', 'tiktok', 'turnaround', 'story']) settings[k] = str(settingsRaw[k]);
+for (const k of ['email', 'venmo', 'instagram', 'tiktok', 'etsy', 'turnaround', 'story']) settings[k] = str(settingsRaw[k]);
 
 const pieceDir = path.join(ROOT, 'content/pieces');
 const files = existsSync(pieceDir) ? (await readdir(pieceDir)).filter((f) => f.endsWith('.json')).sort() : [];
@@ -70,7 +71,9 @@ for (const f of files) {
   const photos = (await Promise.all(photoRefs.map(processPhoto))).filter(Boolean);
   pieces.push({
     slug, name,
-    collection: COLLECTIONS.includes(raw.collection) ? raw.collection : 'candy-jade',
+    collection: COLLECTIONS.includes(raw.collection) ? raw.collection : '',
+    type: TYPES.includes(raw.type) ? raw.type : 'other',
+    etsy: /^https:\/\/(www\.)?etsy\.com\//.test(str(raw.etsy)) ? str(raw.etsy) : '',
     price: Number.isFinite(priceNum) && priceNum >= 0 ? Math.round(priceNum * 100) / 100 : null,
     status: STATUSES.includes(raw.status) ? raw.status : 'ready',
     sizes: str(raw.sizes), materials: str(raw.materials), description: str(raw.description),
