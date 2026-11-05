@@ -60,10 +60,6 @@ content:
           values:
             - value: candy-jade
               label: Candy Jade
-            - value: aurum
-              label: Aurum
-            - value: aura
-              label: Aura
       - name: price
         label: Price in dollars
         type: number

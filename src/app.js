@@ -7,9 +7,7 @@
   var PIECES = Array.isArray(D.pieces) ? D.pieces : [];
 
   var COLLECTIONS = [
-    { key: 'candy-jade', name: 'Candy Jade' },
-    { key: 'aurum', name: 'Aurum' },
-    { key: 'aura', name: 'Aura' }
+    { key: 'candy-jade', name: 'Candy Jade' }
   ];
   var TYPES = [
     { key: 'necklace', name: 'Necklaces', one: 'Necklace' },
@@ -101,11 +99,7 @@
       if (v) { a.href = 'https://venmo.com/u/' + encodeURIComponent(v); a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Venmo @' + v; }
     });
     setCover($('#cj-photo'), 'candy-jade', 'Candy Jade piece by Made in the Mood');
-    setCover($('#aurum-photo'), 'aurum', 'Aurum piece by Made in the Mood');
-    setCover($('#aura-photo'), 'aura', 'Aura piece by Made in the Mood');
     $('#cj-price').textContent = rangeText('candy-jade');
-    $('#aurum-price').textContent = rangeText('aurum');
-    $('#aura-price').textContent = rangeText('aura');
     var t = String(S.turnaround || '').trim();
     $('#turnaround').textContent = t ? ' Typical turnaround: ' + t.replace(/\.$/, '') + '.' : '';
     $$('[data-needs-collection]').forEach(function (n) {

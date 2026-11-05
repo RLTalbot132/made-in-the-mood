@@ -26,4 +26,4 @@ Each save publishes automatically. The live site updates about a minute later.
 
 Local preview: `npm install && npm run build`, then serve `_site/`.
 
-Collections (Candy Jade, Aurum, Aura) and their descriptions are set in `src/index.html` and `src/app.js`.
+Candy Jade is the only collection; its section appears once a piece is tagged with it. Aurum and Aura are on the back burner (removed from the editor and site; add them back in `.pages.yml`, `scripts/build.mjs` and `src/app.js`).

@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, '_site');
 const SITE_URL = (process.env.SITE_URL || '').replace(/\/?$/, '/');
-const COLLECTIONS = ['candy-jade', 'aurum', 'aura'];
+const COLLECTIONS = ['candy-jade']; // Aurum and Aura are on the back burner
 const TYPES = ['necklace', 'bracelet', 'set', 'wrap', 'earrings', 'other'];
 const STATUSES = ['ready', 'made', 'sold'];
 

@@ -40,8 +40,6 @@ img{max-width:100%}
 .btn-text{background:none;border:0;padding:10px 0;font:600 15px var(--body);color:var(--gold-ink);cursor:pointer;min-height:44px}
 .btn-text.danger{color:var(--danger)}
 .ph{background:linear-gradient(135deg,#9ADBC0,#F6B3C9)}
-.ph-aurum{background:linear-gradient(135deg,#F1E6C3,#D6B764)}
-.ph-aura{background:linear-gradient(135deg,#EFD9C4,#C9967E)}
 .photo-box{position:relative;overflow:hidden}
 .photo-box img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 
