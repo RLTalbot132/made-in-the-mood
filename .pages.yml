@@ -112,14 +112,17 @@ content:
         type: string
         description: Every "Email Ashley" button opens a message to this address.
       - name: venmo
-        label: Venmo handle
+        label: Venmo
         type: string
+        description: Your @handle or a link to your profile. Either works.
       - name: instagram
-        label: Instagram handle
+        label: Instagram
         type: string
+        description: Your @handle or a link to your profile. Either works.
       - name: tiktok
-        label: TikTok handle
+        label: TikTok
         type: string
+        description: Your @handle or a link to your profile. Either works.
       - name: etsy
         label: Etsy shop link
         type: string

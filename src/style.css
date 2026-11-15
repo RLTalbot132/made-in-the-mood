@@ -216,3 +216,13 @@ a.card-open:hover{color:inherit}
   .masthead .brand img{height:58px}
   .hero-banner{border-radius:16px}
 }
+
+/* pre-rendered piece pages */
+.is-piece .masthead .hero{display:none}
+.masthead .hero .hero-title{margin:0;flex:1 1 420px;font-family:var(--display);font-size:clamp(34px,4.6vw,54px);line-height:1.08;max-width:15ch}
+#piece-page{padding-block:24px 0}
+#piece-page .pd{padding:0}
+#piece-page h1{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(32px,4.4vw,46px);line-height:1.1;overflow-wrap:anywhere}
+.crumbs{display:flex;flex-wrap:wrap;gap:6px;font-size:14px;color:var(--ink-soft);margin-bottom:20px}
+.crumbs a{color:var(--ink-soft)}
+.card-name{margin:0}

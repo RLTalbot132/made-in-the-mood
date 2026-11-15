@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>{{TITLE}}</title>
 <meta name="description" content="{{DESC}}">
+<link rel="canonical" href="{{CANONICAL}}">
 <meta property="og:type" content="website">
+<meta property="og:url" content="{{CANONICAL}}">
+<meta property="og:site_name" content="Made in the Mood">
 <meta property="og:title" content="{{TITLE}}">
 <meta property="og:description" content="{{DESC}}">
 <meta property="og:image" content="{{OG_IMAGE}}">
@@ -15,8 +18,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Marcellus&display=swap">
 <link rel="stylesheet" href="{{BASE}}style.css?v={{VERSION}}">
+{{JSONLD}}
 </head>
-<body>
+<body class="{{BODY_CLASS}}">
 <div id="app">
 <header id="top" class="masthead">
 <div class="wrap">
@@ -32,7 +36,7 @@
 </div>
 <div class="wrap">
 <div class="hero">
-<img class="hero-banner" src="{{BASE}}media/site/banner.jpg" width="2172" height="724" alt="Gemstone bracelets and charms around the words Made in the Mood, choose your mood">
+<img class="hero-banner" fetchpriority="high" src="{{BASE}}media/site/banner.jpg" width="2172" height="724" alt="Gemstone bracelets and charms around the words Made in the Mood, choose your mood">
 <div class="hero-copy">
 <h1>Choose your mood.</h1>
 <p class="sub">I design jewelry and assemble colorful, easy-to-wear jewelry with playful details and a little personality. Each piece is designed and assembled by hand in my Utah workspace.</p>
@@ -44,6 +48,8 @@
 </div>
 </div>
 </header>
+<main id="main">
+{{PIECE_SECTION}}
 
 <section class="promise" aria-label="What to expect">
 <div class="wrap">
@@ -63,7 +69,7 @@
 </div>
 <div id="shop-filters" class="pills" role="group" aria-label="Filter by collection"></div>
 </div>
-<div id="shop-grid" class="grid"></div>
+<div id="shop-grid" class="grid">{{SHOP_CARDS}}</div>
 <div id="shop-empty" class="empty" hidden><p id="shop-empty-text"></p></div>
 </section>
 
@@ -150,6 +156,7 @@
 </div>
 </section>
 
+</main>
 <footer id="contact" class="band-deep">
 <div class="wrap">
 <div class="foot">

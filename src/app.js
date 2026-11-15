@@ -93,10 +93,10 @@
   /* ---------- page sections ---------- */
   function renderStatic() {
     $$('[data-mail]').forEach(function (a) { var f = MAILS[a.getAttribute('data-mail')]; if (f) a.setAttribute('href', f()); });
-    var v = handle(S.venmo);
+    var L = S.links || {};
     $$('[data-venmo]').forEach(function (a) {
-      a.hidden = !v;
-      if (v) { a.href = 'https://venmo.com/u/' + encodeURIComponent(v); a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Venmo @' + v; }
+      a.hidden = !L.venmo;
+      if (L.venmo) { a.href = L.venmo.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = L.venmo.label; }
     });
     setCover($('#cj-photo'), 'candy-jade', 'Candy Jade piece by Made in the Mood');
     $('#cj-price').textContent = rangeText('candy-jade');
@@ -118,12 +118,11 @@
         el('a', { href: MAILS.general() }, EMAIL),
         el('button', { type: 'button', class: 'copy-btn', onclick: function (ev) { copyText(EMAIL, ev.currentTarget); } }, 'Copy address')));
     }
-    var v = handle(S.venmo), ig = handle(S.instagram), tt = handle(S.tiktok);
-    if (v) rows.push(el('a', { href: 'https://venmo.com/u/' + encodeURIComponent(v), target: '_blank', rel: 'noopener' }, 'Venmo @' + v));
-    if (ig) rows.push(el('a', { href: 'https://instagram.com/' + encodeURIComponent(ig), target: '_blank', rel: 'noopener' }, 'Instagram @' + ig));
+    var L = S.links || {};
+    ['venmo', 'instagram'].forEach(function (k) { if (L[k]) rows.push(el('a', { href: L[k].url, target: '_blank', rel: 'noopener' }, L[k].label)); });
     var etsy = String(S.etsy || '').trim();
     if (/^https:\/\/(www\.)?etsy\.com\//.test(etsy)) rows.push(el('a', { href: etsy, target: '_blank', rel: 'noopener' }, 'Shop on Etsy'));
-    if (tt) rows.push(el('a', { href: 'https://www.tiktok.com/@' + encodeURIComponent(tt), target: '_blank', rel: 'noopener' }, 'TikTok @' + tt));
+    if (L.tiktok) rows.push(el('a', { href: L.tiktok.url, target: '_blank', rel: 'noopener' }, L.tiktok.label));
     list.replaceChildren.apply(list, rows);
   }
 
@@ -157,7 +156,7 @@
       ev.preventDefault(); openPiece(p, true);
     } }, img, el('span', { class: 'card-text' },
       el('span', { class: 'card-col' }, eyebrow(p)),
-      el('span', { class: 'card-name' }, p.name),
+      el('h3', { class: 'card-name' }, p.name),
       price));
     return el('div', { class: 'card' }, a);
   }
@@ -194,7 +193,7 @@
     if (p.materials) facts.push(el('dt', null, 'Materials'), el('dd', null, p.materials));
     if (p.sizes) facts.push(el('dt', null, 'Sizes'), el('dd', null, p.sizes));
     facts.push(el('dt', null, 'Availability'), el('dd', null, STATUS[p.status]));
-    var v = handle(S.venmo);
+    var venmo = (S.links || {}).venmo;
     var ask = el('div', { class: 'pd-ask' },
       p.status === 'sold'
         ? el('a', { class: 'btn btn-dark', href: mailto('Something like ' + p.name, INTRO + 'I love "' + p.name + '". Could you make something like it for me?' + DETAILS) }, 'Ask for one like it')
@@ -202,7 +201,7 @@
       p.etsy && p.status !== 'sold' ? el('a', { class: 'btn btn-ghost', href: p.etsy, target: '_blank', rel: 'noopener' }, 'Buy on Etsy') : null,
       EMAIL ? el('p', null, 'Or write to ' + EMAIL + '.') : null,
       EMAIL ? el('button', { type: 'button', class: 'btn-text', onclick: function (ev) { copyText(EMAIL, ev.currentTarget); } }, 'Copy email address') : null,
-      el('p', null, 'Ashley replies personally to confirm size and shipping.' + (v ? ' Payment is by Venmo @' + v + ' once you have agreed on the details.' : '')));
+      el('p', null, 'Ashley replies personally to confirm size and shipping.' + (venmo ? ' Payment is by Venmo once you have agreed on the details.' : '')));
     $('#pd-body').replaceChildren(
       el('div', { style: 'min-width:0' }, main, thumbs),
       el('div', { class: 'pd-info' },
@@ -234,8 +233,24 @@
   renderStatic();
   renderShop();
   renderMood();
-  if (D.open) {
-    var p = PIECES.filter(function (x) { return x.slug === D.open; })[0];
-    if (p) openPiece(p, false);
+  /* Piece pages are pre-rendered by the build; enhance the static section instead of opening the dialog. */
+  var sp = $('#piece-page');
+  if (sp) {
+    var sp0 = PIECES.filter(function (x) { return x.slug === D.open; })[0];
+    if (sp0) {
+      var order = $('[data-piece-mail]', sp);
+      if (order) order.setAttribute('href', sp0.status === 'sold'
+        ? mailto('Something like ' + sp0.name, INTRO + 'I love "' + sp0.name + '". Could you make something like it for me?' + DETAILS)
+        : pieceMail(sp0));
+      var spMain = $('.pd-main', sp);
+      $$('.pd-thumb', sp).forEach(function (b) {
+        b.addEventListener('click', function () {
+          $$('.pd-thumb', sp).forEach(function (x) { x.setAttribute('aria-current', 'false'); });
+          b.setAttribute('aria-current', 'true');
+          spMain.replaceChildren(el('img', { src: b.getAttribute('data-large'), alt: b.getAttribute('data-alt') }));
+        });
+      });
+      $$('[data-copy-email]', sp).forEach(function (b) { b.addEventListener('click', function () { copyText(EMAIL, b); }); });
+    }
   }
 })();
