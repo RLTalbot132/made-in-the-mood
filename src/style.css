@@ -62,7 +62,10 @@ img{max-width:100%}
 .actions{display:flex;flex-wrap:wrap;gap:12px}
 
 .promise{background:var(--bg-alt)}
-.promise .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px 32px;padding-block:22px}
+.promise .wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:12px 32px;padding-block:22px}
+@media (min-width:640px){.promise .wrap{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1000px){.promise .wrap{display:flex;justify-content:space-between}}
+.promise svg{flex-shrink:0}
 .promise div{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px}
 .dia{fill:var(--gold)}
 
