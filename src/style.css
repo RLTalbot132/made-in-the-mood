@@ -1,15 +1,15 @@
-/* Layout: one centered 1120px column inside full-width bands; dark brown header and footer bracket cream sections, the shop grid sits right under the Candy Jade feature. */
+/* Layout: one centered 1120px column inside full-width bands; white page, indigo footer, the shop grid sits right after the hero. */
 :root{
-  /* Ashley's brand, sampled from her logo: cream ground, deep brown type, gold heart, blush accent. One light look by design. */
+  /* Periwinkle & citrine, taken from the beads in Ashley's banner: white ground, deep indigo type, periwinkle accent, citrine highlight. One light look by design. */
   color-scheme:light;
-  --bg:#FEF9F3; --bg-alt:#F7EDE0; --surface:#FFFDF9;
-  --ink:#42281A; --ink-2:#4F3426; --ink-soft:#6E5546;
-  --line:#EADCC8; --line-strong:#D3BE9F;
-  --gold:#C8A15C; --on-gold:#2E1B10; --gold-ink:#7E5C1C; --rose:#9A5845; --blush:#E2A18D; --blush-bg:#F8E3DB;
-  --deep:#3A2216; --deep-ink:#FEF9F3; --deep-soft:#E6D6C2; --deep-line:#6E5643;
-  --btn:#42281A; --btn-ink:#FEF9F3;
-  --ok:#2F5E40; --ok-bg:#DDEBDA; --muted-bg:#F1E3D2; --danger:#9B2C1F;
-  --shade:rgba(46,27,16,.5); --shadow:0 30px 80px rgba(46,27,16,.25);
+  --bg:#FFFFFF; --bg-alt:#EFF1FB; --surface:#FFFFFF;
+  --ink:#1F2142; --ink-2:#2A2D55; --ink-soft:#585B80;
+  --line:#E4E6F4; --line-strong:#C8CCE8;
+  --gold:#F0BE3C; --on-gold:#1F2142; --gold-ink:#3F4FB0; --rose:#B4466B; --blush:#F0BE3C; --blush-bg:#FFF4D6;
+  --deep:#1F2142; --deep-ink:#FFFFFF; --deep-soft:#D3D6EE; --deep-line:#45497A;
+  --btn:#3F4FB0; --btn-ink:#FFFFFF;
+  --ok:#2F5E40; --ok-bg:#DDEBDA; --muted-bg:#EEF0FA; --danger:#9B2C1F;
+  --shade:rgba(31,33,66,.5); --shadow:0 30px 80px rgba(31,33,66,.22);
   --display:'Marcellus','Cormorant Garamond',Georgia,serif;
   --body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
   --gutter:24px;
