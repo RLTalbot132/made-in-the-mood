@@ -48,6 +48,16 @@
   function colName(k) { for (var i = 0; i < COLLECTIONS.length; i++) if (COLLECTIONS[i].key === k) return COLLECTIONS[i].name; return ''; }
   function handle(s) { return String(s || '').trim().replace(/^@+/, ''); }
   function pieceUrl(p) { return new URL('pieces/' + p.slug + '/', ROOT).href; }
+  /* Interactive 3D view; loaded only when someone taps the 3D tile. */
+  var ICON3D = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.8 20 7.4v9.2L12 21.2 4 16.6V7.4z"/><path d="M4 7.4l8 4.6 8-4.6M12 12v9.2"/></svg>';
+  function viewer3d(url, name) {
+    return el('iframe', { class: 'pd-3d', src: new URL(url, location.href).href + '?embed', title: 'Interactive 3D view of ' + name, allow: 'fullscreen' });
+  }
+  function tile3d(onclick, name) {
+    var b = el('button', { type: 'button', class: 'pd-thumb pd-thumb-3d', 'aria-label': 'View ' + name + ' in 3D', 'aria-current': 'false', onclick: onclick });
+    b.innerHTML = ICON3D + '<span>3D</span>';
+    return b;
+  }
 
   var EMAIL = String(S.email || '').trim();
   function mailto(subject, body) {
@@ -182,13 +192,16 @@
   var homeUrl = location.href;
   function openPiece(p, push) {
     var main = el('div', { class: 'pd-main photo-box' }, p.photos[0] ? el('img', { src: src(p.photos[0].large), alt: p.name }) : null);
-    var thumbs = p.photos.length > 1 ? el('div', { class: 'pd-thumbs' }, p.photos.map(function (ph, i) {
+    function pick(btn) {
+      $$('.pd-thumb', thumbs).forEach(function (b) { b.setAttribute('aria-current', 'false'); });
+      btn.setAttribute('aria-current', 'true');
+    }
+    var thumbs = p.photos.length > 1 || p.model3d ? el('div', { class: 'pd-thumbs' }, p.photos.map(function (ph, i) {
       return el('button', { type: 'button', class: 'pd-thumb', 'aria-label': 'Photo ' + (i + 1) + ' of ' + p.photos.length, 'aria-current': String(i === 0), onclick: function (ev) {
-        $$('.pd-thumb', thumbs).forEach(function (b) { b.setAttribute('aria-current', 'false'); });
-        ev.currentTarget.setAttribute('aria-current', 'true');
+        pick(ev.currentTarget);
         main.replaceChildren(el('img', { src: src(ph.large), alt: p.name + ', photo ' + (i + 1) }));
       } }, el('img', { src: src(ph.small), alt: '' }));
-    })) : null;
+    }), p.model3d ? tile3d(function (ev) { pick(ev.currentTarget); main.replaceChildren(viewer3d(src(p.model3d), p.name)); }, p.name) : null) : null;
     var facts = [];
     if (p.materials) facts.push(el('dt', null, 'Materials'), el('dd', null, p.materials));
     if (p.sizes) facts.push(el('dt', null, 'Sizes'), el('dd', null, p.sizes));
@@ -247,7 +260,9 @@
         b.addEventListener('click', function () {
           $$('.pd-thumb', sp).forEach(function (x) { x.setAttribute('aria-current', 'false'); });
           b.setAttribute('aria-current', 'true');
-          spMain.replaceChildren(el('img', { src: b.getAttribute('data-large'), alt: b.getAttribute('data-alt') }));
+          spMain.replaceChildren(b.hasAttribute('data-3d')
+            ? viewer3d(b.getAttribute('data-3d'), sp0.name)
+            : el('img', { src: b.getAttribute('data-large'), alt: b.getAttribute('data-alt') }));
         });
       });
       $$('[data-copy-email]', sp).forEach(function (b) { b.addEventListener('click', function () { copyText(EMAIL, b); }); });

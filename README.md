@@ -20,6 +20,7 @@ Each save publishes automatically. The live site updates about a minute later.
 | `media/uploads/` | Photos Ashley uploads (originals) |
 | `media/site/` | Logo and Ashley's photo |
 | `src/` | Page template, styles and script |
+| `src/3d/<piece-name>.html` | Optional interactive 3D view of a piece. If the file exists, that piece's page gets a "3D" tile next to its photos |
 | `scripts/build.mjs` | Builds `_site/`: resizes photos to 600 px and 1400 px, writes the home page and one page per piece (`/pieces/<name>/`) for link previews |
 | `.pages.yml` | The editor's forms (Pages CMS config) |
 | `.github/workflows/deploy.yml` | Builds and publishes to GitHub Pages on every push to `main` |
