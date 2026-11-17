@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wildflower Statement Necklace · 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;background:#fff;overflow:hidden;font-family:Inter,system-ui,-apple-system,sans-serif;color:#2b2622}
+  #c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+  #c:active{cursor:grabbing}
+  .hud{position:fixed;left:24px;top:20px;pointer-events:none}
+  .hud h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:30px;line-height:1.1;margin:0;letter-spacing:.2px}
+  .hud p{margin:5px 0 0;font-size:11.5px;color:#9a9189;letter-spacing:.5px;text-transform:uppercase}
+  .bar{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:9px}
+  #toggle{font:500 14px Inter,system-ui,sans-serif;padding:12px 28px;border-radius:999px;border:1px solid #ddd3c8;background:#fff;color:#2b2622;cursor:pointer;
+    box-shadow:0 6px 22px rgba(90,64,40,.10);transition:background .2s,box-shadow .2s,transform .15s;min-width:210px}
+  #toggle:hover{background:#fbf7f2;box-shadow:0 8px 26px rgba(90,64,40,.14)}
+  #toggle:active{transform:scale(.98)}
+  .hint{font-size:11.5px;color:#aaa198;letter-spacing:.3px}
+  #labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+  .lbl{position:absolute;left:0;top:0;white-space:nowrap;font-size:12.5px;font-weight:500;padding:5px 12px 5px 9px;border-radius:999px;
+    background:rgba(255,255,255,.95);border:1px solid #e5ddd4;box-shadow:0 2px 12px rgba(60,40,20,.08);display:flex;align-items:center;gap:7px;
+    opacity:0;will-change:transform,opacity}
+  .lbl i{width:9px;height:9px;border-radius:50%;display:inline-block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+  #err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:24px;color:#6b625b;font-size:14px}
+  @media (max-width:600px){.hud h1{font-size:24px}.hud{left:16px;top:14px}}
+  /* Embedded on madeinthemoodjewelry.com: the page already shows the name, so hide the title and match the site's button */
+  .embed .hud{display:none}
+  .embed #c{touch-action:pan-y}
+  .embed .bar{bottom:16px}
+  .embed #toggle{background:#3F4FB0;color:#fff;border-color:#3F4FB0;font-family:Figtree,Inter,system-ui,sans-serif;font-weight:600;padding:11px 24px;min-width:0}
+  .embed #toggle:hover{background:#3F4FB0;filter:brightness(1.15)}
+  .embed .hint{display:none}
+  .embed .lbl{font-size:11.5px;padding:4px 10px 4px 8px}
+  .embed #toggle{white-space:nowrap}
+  @media (max-width:440px){.embed #toggle{font-size:13px;padding:9px 18px}.embed .lbl{font-size:10.5px;padding:3px 8px 3px 7px;gap:5px}.embed .lbl i{width:7px;height:7px}}
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<script>if (/[?&]embed\b/.test(location.search)) document.body.classList.add('embed');</script>
+<canvas id="c"></canvas>
+<div id="labels"></div>
+<div class="hud">
+  <h1>Wildflower Statement Necklace</h1>
+  <p>Made in the Mood · built entirely in code</p>
+</div>
+<div class="bar">
+  <button id="toggle" type="button">Take it apart</button>
+  <div class="hint">Drag to rotate · Scroll to zoom</div>
+</div>
+<div id="err">This 3D view needs WebGL, which isn’t available in this browser.</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+
+/* ------------------------------------------------------------------
+   Scale: the model is traced from the product photo (1254 px square).
+   1 scene unit = 100 photo px ≈ 11.3 mm on the real 20-inch necklace.
+   x = photo x, z = photo y, y = height above the table.
+------------------------------------------------------------------- */
+const DEG = Math.PI / 180, S = 0.01, CX = 650, CY = 600;
+
+/* ---------------- renderer / scene ---------------- */
+const canvas = document.getElementById('c');
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true }); }
+catch (e) { document.getElementById('err').style.display = 'flex'; throw e; }
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xffffff);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 400);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 4;
+controls.maxDistance = 60;
+controls.maxPolarAngle = Math.PI / 2 - 0.04;
+controls.rotateSpeed = 0.7;
+controls.zoomSpeed = 0.8;
+
+function fitCamera() {
+  const a = innerWidth / innerHeight;
+  const k = a >= 1.3 ? 1 : Math.pow(1.3 / a, 0.9);
+  controls.target.set(0.3, 0.3, 0.55);
+  camera.position.set(0, 10.8 * k, 13.2 * k).add(controls.target);
+}
+fitCamera();
+
+/* soft light + soft shadows */
+scene.add(new THREE.HemisphereLight(0xffffff, 0xefe5d8, 0.55));
+const key = new THREE.DirectionalLight(0xffffff, 1.55);
+key.position.set(5, 15, 8);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -15, right: 15, top: 15, bottom: -15, near: 1, far: 60 });
+key.shadow.bias = -0.0004;
+key.shadow.normalBias = 0.02;
+scene.add(key);
+const fill = new THREE.DirectionalLight(0xfff0de, 0.35);
+fill.position.set(-9, 6, -5);
+scene.add(fill);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.ShadowMaterial({ opacity: 0.12 }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+/* ---------------- small utilities ---------------- */
+function rng(seed) {
+  let a = (seed * 9301 + 49297) >>> 0;
+  return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function makeNoise(seed, n = 6) {
+  const r = rng(seed), terms = [];
+  for (let i = 0; i < n; i++) {
+    const d = new THREE.Vector3(r() * 2 - 1, r() * 2 - 1, r() * 2 - 1).normalize();
+    terms.push({ d, k: 1.6 + r() * 3.4, ph: r() * 6.283, a: (0.5 + r()) / (1 + i * 0.35) });
+  }
+  const norm = terms.reduce((s, t) => s + t.a, 0);
+  return v => terms.reduce((s, t) => s + t.a * Math.sin(t.d.dot(v) * t.k + t.ph), 0) / norm;
+}
+const tmpV = new THREE.Vector3();
+function colorize(g, fn) {
+  const p = g.attributes.position, c = new Float32Array(p.count * 3), col = new THREE.Color();
+  for (let i = 0; i < p.count; i++) { tmpV.fromBufferAttribute(p, i); fn(tmpV, col); col.toArray(c, i * 3); }
+  g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+  return g;
+}
+function canvasTex(w, h, draw) {
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  draw(cv.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+function mesh(g, m) { const o = new THREE.Mesh(g, m); o.castShadow = true; o.receiveShadow = true; return o; }
+function shadowAll(o) { o.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } }); return o; }
+
+/* faceted stone: subdivided icosahedron, vertices nudged so facets are irregular */
+function gemGeo(detail, jit, seed, shape) {
+  const g = new THREE.IcosahedronGeometry(1, detail);
+  const r0 = rng(seed); g.rotateX(r0() * 6.28); g.rotateY(r0() * 6.28);
+  const r = rng(seed * 13 + 7), map = new Map(), p = g.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i);
+    const k = `${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`;
+    let s = map.get(k); if (s === undefined) { s = 1 + (r() * 2 - 1) * jit; map.set(k, s); }
+    v.multiplyScalar(s); if (shape) shape(v);
+    p.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+/* smooth lumpy sphere for baroque pearls */
+function blobGeo(seed, amp, ws = 72, hs = 54) {
+  let g = new THREE.SphereGeometry(1, ws, hs);
+  g.deleteAttribute('normal'); g.deleteAttribute('uv'); g = mergeVertices(g);
+  const n = makeNoise(seed, 7), p = g.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i); const d = v.clone().normalize();
+    v.multiplyScalar(1 + amp * n(d)); p.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+/* rondelle: lathe profile, hole axis turned to +X */
+function rondelleGeo(faceted) {
+  const pts = [], n = faceted ? 8 : 18;
+  for (let i = 0; i <= n; i++) {
+    const t = -Math.PI / 2 + Math.PI * i / n;
+    const c = Math.cos(t), s = Math.sin(t);
+    pts.push(new THREE.Vector2(Math.max(0.001, Math.pow(Math.abs(c), faceted ? 0.75 : 0.55)), Math.sign(s) * Math.pow(Math.abs(s), 1.25)));
+  }
+  const g = new THREE.LatheGeometry(pts, faceted ? 16 : 48);
+  g.rotateZ(Math.PI / 2);
+  return g;
+}
+/* fluted / corrugated gold bead, hole axis +X */
+function corrugatedGeo() {
+  let g = new THREE.SphereGeometry(1, 80, 40);
+  g.deleteAttribute('normal'); g.deleteAttribute('uv'); g = mergeVertices(g);
+  const p = g.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i);
+    const phi = Math.atan2(v.z, v.x), ridge = 1 + 0.07 * Math.cos(18 * phi) * Math.sqrt(Math.max(0, 1 - v.y * v.y));
+    v.x *= ridge; v.z *= ridge; v.y *= 0.88; p.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals(); g.rotateZ(Math.PI / 2);
+  return g;
+}
+function flowerShape(R, petals, depth, pw) {
+  const s = new THREE.Shape(), N = 360;
+  for (let i = 0; i <= N; i++) {
+    const t = i / N * Math.PI * 2;
+    const r = R * (1 - depth + depth * Math.pow(Math.abs(Math.cos(petals * t / 2)), pw));
+    i ? s.lineTo(r * Math.cos(t), r * Math.sin(t)) : s.moveTo(r * Math.cos(t), r * Math.sin(t));
+  }
+  return s;
+}
+/* tube with a wobbling radius, for the organic gold clasp */
+function organicTube(curve, segs, radial, rFn) {
+  const fr = curve.computeFrenetFrames(segs, true), pos = [], idx = [];
+  for (let i = 0; i <= segs; i++) {
+    const t = i / segs, c = curve.getPointAt(t), N = fr.normals[i], B = fr.binormals[i], r = rFn(t);
+    for (let j = 0; j <= radial; j++) {
+      const a = j / radial * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+      pos.push(c.x + r * (ca * N.x + sa * B.x), c.y + r * (ca * N.y + sa * B.y), c.z + r * (ca * N.z + sa * B.z));
+    }
+  }
+  for (let i = 0; i < segs; i++) for (let j = 0; j < radial; j++) {
+    const a = i * (radial + 1) + j, b = a + radial + 1;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+
+/* ---------------- materials ---------------- */
+const phys = o => new THREE.MeshPhysicalMaterial(o);
+const C = h => new THREE.Color(h);
+const M = {
+  gold:     new THREE.MeshStandardMaterial({ color: 0xe9b84f, metalness: 1, roughness: 0.17, envMapIntensity: 1.25 }),
+  agate:    phys({ color: 0xd2501c, roughness: 0.05, transmission: 0.32, thickness: 1.3, ior: 1.54, attenuationColor: C(0xa52f08), attenuationDistance: 0.7, clearcoat: 1, clearcoatRoughness: 0.04, flatShading: true }),
+  amethyst: phys({ color: 0x7b3fb8, roughness: 0.04, transmission: 0.45, thickness: 1, ior: 1.54, attenuationColor: C(0x561c93), attenuationDistance: 0.5, clearcoat: 1, flatShading: true }),
+  smoky:    phys({ color: 0x251a15, roughness: 0.03, transmission: 0.12, thickness: 1.5, ior: 1.54, attenuationColor: C(0x2a1a10), attenuationDistance: 0.3, clearcoat: 1, clearcoatRoughness: 0.02, flatShading: true }),
+  smokyRd:  phys({ color: 0x4b3527, roughness: 0.04, transmission: 0.35, thickness: 0.8, ior: 1.54, attenuationColor: C(0x3b2416), attenuationDistance: 0.45, clearcoat: 1, flatShading: true }),
+  clear:    phys({ color: 0xfffaf0, roughness: 0.0, transmission: 1, thickness: 0.9, ior: 1.6, attenuationColor: C(0xe2bf86), attenuationDistance: 0.9, clearcoat: 1, specularIntensity: 1, envMapIntensity: 1.6, flatShading: true }),
+  citrine:  phys({ color: 0xf4c552, roughness: 0.03, transmission: 0.62, thickness: 1, ior: 1.54, attenuationColor: C(0xe29b20), attenuationDistance: 0.9, clearcoat: 1, flatShading: true }),
+  carved:   phys({ color: 0xebb24c, roughness: 0.4, transmission: 0.08, thickness: 0.6, ior: 1.5, attenuationColor: C(0xdca23e), attenuationDistance: 0.8, sheen: 0.3, sheenColor: C(0xfff3d8) }),
+  carvedLn: new THREE.MeshStandardMaterial({ color: 0xc28f35, roughness: 0.6 }),
+  pearl:    phys({ color: 0xfaf1ec, envMapIntensity: 1.35, roughness: 0.12, iridescence: 0.75, iridescenceIOR: 1.35, iridescenceThicknessRange: [180, 520], sheen: 0.6, sheenColor: C(0xfff0f4), clearcoat: 0.8, clearcoatRoughness: 0.12 }),
+  pink:     phys({ vertexColors: true, roughness: 0.16, clearcoat: 0.7, flatShading: true }),
+  gray:     phys({ vertexColors: true, roughness: 0.26, iridescence: 0.5, iridescenceIOR: 1.6, clearcoat: 0.5 }),
+  peridot:  phys({ vertexColors: true, roughness: 0.12, clearcoat: 0.9, clearcoatRoughness: 0.05, flatShading: true }),
+  resin:    phys({ color: 0xffffff, roughness: 0.03, transparent: true, opacity: 0.16, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 1.6, depthWrite: false }),
+  petal:    new THREE.MeshStandardMaterial({ color: 0xfdfdf9, roughness: 0.62, side: THREE.DoubleSide }),
+  petalEdge:new THREE.MeshStandardMaterial({ color: 0xbdb5a0, roughness: 0.8, side: THREE.DoubleSide }),
+};
+const mix3 = (col, a, b, c, t1, t2) => col.copy(C(a)).lerp(C(b), THREE.MathUtils.clamp(t1, 0, 1)).lerp(C(c), THREE.MathUtils.clamp(t2, 0, 1));
+
+/* ---------------- sections ---------------- */
+const root = new THREE.Group();
+scene.add(root);
+const SECTIONS = [
+  { key: 'agate',    name: 'Fire Agate',               color: '#c9501c', theta: 200, lift: 1.6 },
+  { key: 'amethyst', name: 'Amethyst',                 color: '#6b2fa0', theta: 290, lift: 1.6 },
+  { key: 'smoky',    name: 'Smoky & Clear Quartz',     color: '#3a2c25', theta: 15,  lift: 1.6 },
+  { key: 'citrine',  name: 'Citrine & Yellow Jade', color: '#e9b949', theta: 335, lift: 0.5 },
+  { key: 'pearl',    name: 'Pearls, Pink Lace & Labradorite', color: '#ead6d4', theta: 245, lift: 0.5 },
+  { key: 'peridot',  name: 'Peridot',                  color: '#5b7a2a', theta: 155, lift: 0.5 },
+  { key: 'glass',    name: 'Art Glass',                color: '#6f97b8', theta: 175, lift: 1.6 },
+  { key: 'gold',     name: 'Gold Clasp & Charms',      color: '#d4a537', theta: 105, lift: 0.15 },
+];
+const G = {};
+for (const s of SECTIONS) {
+  s.group = new THREE.Group(); s.group.name = s.name; root.add(s.group); G[s.key] = s.group;
+  s.dirH = new THREE.Vector3(Math.cos(s.theta * DEG), 0, Math.sin(s.theta * DEG));
+  s.offset = s.dirH.clone().multiplyScalar(s.key === 'gold' ? 4.2 : 6.4).setY(s.lift);
+}
+
+/* place a part. Sizes in photo px: w = length along `ang`, h = across, vh = height */
+const items = {};
+function put(id, sec, obj, px, py, w, h, ang, vh, opt = {}) {
+  const x = (px - CX) * S, z = (py - CY) * S;
+  if (opt.scale !== false) obj.scale.set(w * S / 2, vh * S / 2, h * S / 2);
+  obj.position.set(x, opt.y ?? vh * S / 2, z);
+  obj.rotation.y = -ang * DEG;
+  G[sec].add(obj);
+  items[id] = { x, z, a: w * S / 2, b: h * S / 2, ang: ang * DEG, sec, gem: opt.gem !== false };
+  return obj;
+}
+
+/* ===== 1 · Fire agate (orange faceted rounds) ===== */
+put('fa1', 'agate', mesh(gemGeo(2, 0.012, 11), M.agate), 363, 175, 125, 125, 0, 125);
+put('fa2', 'agate', mesh(gemGeo(2, 0.012, 12), M.agate), 318, 338, 135, 135, 0, 135);
+put('fa3', 'agate', mesh(gemGeo(2, 0.012, 13), M.agate), 515, 740, 135, 135, 0, 135);
+
+/* ===== 2 · Amethyst ===== */
+put('am1', 'amethyst', mesh(gemGeo(2, 0.02, 21), M.amethyst), 545, 115, 75, 75, 0, 75);
+put('am2', 'amethyst', mesh(gemGeo(2, 0.02, 22), M.amethyst), 730, 205, 95, 95, 0, 95);
+put('am3', 'amethyst', mesh(gemGeo(2, 0.04, 23), M.amethyst), 985, 225, 100, 90, 35, 92);
+put('am4', 'amethyst', mesh(gemGeo(1, 0.07, 24), M.amethyst), 150, 440, 105, 95, 80, 95);
+put('am5', 'amethyst', mesh(gemGeo(1, 0.06, 25), M.amethyst), 710, 620, 105, 100, 20, 98);
+put('am6', 'amethyst', mesh(gemGeo(1, 0.12, 26), M.amethyst), 915, 385, 125, 112, 60, 100);
+
+/* ===== 3 · Smoky & clear quartz ===== */
+put('sq1', 'smoky', mesh(gemGeo(1, 0.13, 31), M.smoky), 590, 485, 170, 128, -8, 105);
+put('sq2', 'smoky', mesh(gemGeo(1, 0.13, 32), M.smoky), 950, 545, 170, 150, -35, 115);
+put('sq3', 'smoky', mesh(gemGeo(2, 0.015, 33), M.smokyRd), 183, 362, 85, 85, 0, 85);
+put('sq4', 'smoky', mesh(gemGeo(2, 0.015, 34), M.smokyRd), 290, 450, 85, 85, 0, 85);
+put('cq1', 'smoky', mesh(rondelleGeo(true), M.clear), 830, 600, 72, 112, -17, 112);
+put('cq2', 'smoky', mesh(rondelleGeo(true), M.clear), 650, 740, 72, 112, -8, 112);
+
+/* ===== 4 · Citrine & carved yellow jade flowers ===== */
+const taper = v => { const u = (v.x + 1) / 2, f = 1 - 0.5 * Math.pow(u, 1.4); v.y *= f; v.z *= f; };
+const pinch = v => { const f = 1 - 0.22 * v.x * v.x; v.y *= f; v.z *= f; };
+put('ct1', 'citrine', mesh(gemGeo(1, 0.05, 41, taper), M.citrine), 250, 655, 245, 112, 38, 90);
+put('ct2', 'citrine', mesh(gemGeo(1, 0.08, 42, pinch), M.citrine), 550, 620, 180, 102, -4, 85);
+function carvedFlower(R, seed) {
+  const g = new THREE.Group();
+  const geo = new THREE.ExtrudeGeometry(flowerShape(R - 0.06, 6, 0.2, 0.6), { depth: 0.2, bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.06, bevelSegments: 6, curveSegments: 4 });
+  geo.rotateX(-Math.PI / 2);
+  const body = mesh(geo, M.carved); body.position.y = 0.12; g.add(body);
+  const top = 0.12 + 0.2 + 0.12;
+  for (let k = 0; k < 6; k++) {               // carved petal grooves
+    const a = (k + 0.5) / 6 * Math.PI * 2, len = R * 0.62;
+    const b = mesh(new THREE.BoxGeometry(len, 0.012, 0.022), M.carvedLn);
+    b.position.set(Math.cos(a) * (0.1 + len / 2), top - 0.002, -Math.sin(a) * (0.1 + len / 2));
+    b.rotation.y = a; g.add(b);
+  }
+  const ctr = mesh(new THREE.SphereGeometry(1, 32, 16), M.carved);
+  ctr.scale.set(0.13, 0.05, 0.13); ctr.position.y = top; g.add(ctr);
+  g.rotation.y = seed;
+  return g;
+}
+put('cf1', 'citrine', carvedFlower(0.5, 0.2), 620, 200, 100, 100, 10, 44, { scale: false, y: 0 });
+put('cf2', 'citrine', carvedFlower(0.57, 0.9), 1040, 325, 115, 115, 20, 44, { scale: false, y: 0 });
+
+/* ===== 5 · Pearls, pink crazy lace, labradorite rondelles ===== */
+put('pl1', 'pearl', mesh(blobGeo(61, 0.13), M.pearl), 260, 270, 115, 85, -45, 72);
+put('pl2', 'pearl', mesh(blobGeo(62, 0.14), M.pearl), 485, 220, 128, 95, 3, 78);
+put('pl3', 'pearl', mesh(blobGeo(63, 0.15), M.pearl), 760, 520, 150, 95, -4, 78);
+put('pl4', 'pearl', mesh(blobGeo(64, 0.13), M.pearl), 1030, 440, 125, 112, 85, 82);
+function pinkGeo(seed) {
+  const n = makeNoise(seed, 5);
+  return colorize(gemGeo(3, 0.006, seed), (v, col) => {
+    const t = Math.sin(v.y * 7 + v.x * 2 + 3.2 * n(v)) * 0.5 + 0.5;
+    mix3(col, 0xd27f8a, 0xf2d3cc, 0xa8898c, t, Math.max(0, n(v.clone().multiplyScalar(2)) * 1.2));
+  });
+}
+put('pk1', 'pearl', mesh(pinkGeo(71), M.pink), 775, 115, 80, 80, 0, 80);
+put('pk2', 'pearl', mesh(pinkGeo(72), M.pink), 870, 290, 80, 80, 0, 80);
+put('pk3', 'pearl', mesh(pinkGeo(73), M.pink), 395, 595, 90, 90, 0, 90);
+function grayGeo(seed) {
+  const n = makeNoise(seed, 6);
+  return colorize(rondelleGeo(false), (v, col) => {
+    const t = n(v.clone().multiplyScalar(2.2)) * 0.5 + 0.5;
+    mix3(col, 0x8a9188, 0x5f665f, 0xb3b7a8, t, Math.max(0, n(v.clone().multiplyScalar(4))));
+  });
+}
+put('gr1', 'pearl', mesh(grayGeo(81), M.gray), 845, 125, 52, 72, 20, 72);
+put('gr2', 'pearl', mesh(grayGeo(82), M.gray), 810, 235, 52, 72, 31, 72);
+
+/* ===== 6 · Peridot (mottled green faceted rounds) ===== */
+function peridotGeo(seed) {
+  const n = makeNoise(seed, 6);
+  return colorize(gemGeo(2, 0.02, seed), (v, col) => {
+    const t = n(v.clone().multiplyScalar(2.5)) * 0.5 + 0.5;
+    mix3(col, 0x55732b, 0x34491b, 0x93a656, t, Math.max(0, n(v.clone().multiplyScalar(5)) - 0.2) * 1.6);
+  });
+}
+[[465, 130], [383, 267], [320, 532], [870, 475], [910, 165], [395, 735]].forEach(([x, y], i) =>
+  put('pd' + (i + 1), 'peridot', mesh(peridotGeo(91 + i), M.peridot), x, y, 75, 75, 0, 75));
+
+/* ===== 7 · Art glass: Czech flower + lampwork ===== */
+const czechTex = canvasTex(512, 512, (g, w, h) => {
+  const c = w / 2, rg = g.createRadialGradient(c, c, 10, c, c, c);
+  rg.addColorStop(0, '#d9c26a'); rg.addColorStop(0.18, '#a07a3a'); rg.addColorStop(0.3, '#7fa6c6');
+  rg.addColorStop(0.75, '#5a84ab'); rg.addColorStop(0.92, '#43627c'); rg.addColorStop(1, '#6b4a2a');
+  g.fillStyle = rg; g.fillRect(0, 0, w, h);
+  const r = rng(5);
+  g.lineCap = 'round';
+  for (let i = 0; i < 44; i++) {                       // radiating centre rays
+    const a = i / 44 * Math.PI * 2 + r() * 0.05, r1 = 22, r2 = 95 + r() * 30;
+    g.strokeStyle = i % 2 ? 'rgba(92,58,24,.9)' : 'rgba(226,205,120,.9)'; g.lineWidth = 3 + r() * 2;
+    g.beginPath(); g.moveTo(c + Math.cos(a) * r1, c + Math.sin(a) * r1); g.lineTo(c + Math.cos(a) * r2, c + Math.sin(a) * r2); g.stroke();
+  }
+  g.fillStyle = '#5a3a1c'; g.beginPath(); g.arc(c, c, 22, 0, 7); g.fill();
+  for (let i = 0; i < 600; i++) {                      // picasso speckle toward the rim
+    const a = r() * 7, d = 150 + r() * 106;
+    g.fillStyle = `rgba(${90 + r() * 40},${60 + r() * 30},${30 + r() * 20},${0.15 + r() * 0.4})`;
+    g.beginPath(); g.arc(c + Math.cos(a) * d, c + Math.sin(a) * d, 1 + r() * 4, 0, 7); g.fill();
+  }
+});
+czechTex.center.set(0, 0); czechTex.offset.set(0.5, 0.5);
+function czechFlower() {
+  const geo = new THREE.ExtrudeGeometry(flowerShape(0.46, 6, 0.24, 0.45), { depth: 0.14, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.04, bevelSegments: 3, curveSegments: 4 });
+  geo.rotateX(-Math.PI / 2);
+  const face = phys({ map: czechTex, roughness: 0.25, clearcoat: 0.8 });
+  const side = phys({ color: 0x4f6f86, roughness: 0.3, clearcoat: 0.6 });
+  const m = mesh(geo, [face, side]); m.position.y = 0.05;
+  const g = new THREE.Group(); g.add(m); return g;
+}
+put('cz', 'glass', czechFlower(), 645, 110, 100, 100, 12, 28, { scale: false, y: 0 });
+
+const lampTex = canvasTex(1024, 512, (g, w, h) => {
+  const gr = g.createLinearGradient(0, 0, 0, h);
+  gr.addColorStop(0, '#f4c19a'); gr.addColorStop(0.5, '#e99c6c'); gr.addColorStop(1, '#d7835a');
+  g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  const r = rng(7); g.lineCap = 'round';
+  for (let i = 0; i < 7; i++) {                       // green vines + leaves
+    g.strokeStyle = '#4c7a33'; g.lineWidth = 6;
+    let x = r() * w, y = h * 0.3 + r() * h * 0.45; g.beginPath(); g.moveTo(x, y);
+    for (let k = 0; k < 4; k++) { const nx = x + 70 + r() * 60, ny = y - 40 + r() * 80; g.quadraticCurveTo(x + 35, y - 50 + r() * 100, nx, ny); x = nx; y = ny;
+      g.save(); g.fillStyle = '#5d9440'; g.translate(x, y); g.rotate(r() * 6); g.beginPath(); g.ellipse(0, 12, 7, 15, 0, 0, 7); g.fill(); g.restore(); }
+    g.stroke();
+  }
+  for (let i = 0; i < 46; i++) {                      // lavender dots
+    const x = r() * w, y = h * 0.15 + r() * h * 0.75, rad = 7 + r() * 13;
+    g.fillStyle = '#a99be0'; g.beginPath(); g.arc(x, y, rad, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.arc(x - rad * 0.3, y - rad * 0.3, rad * 0.35, 0, 7); g.fill();
+  }
+  for (let i = 0; i < 16; i++) {                      // coral swirls
+    g.fillStyle = i % 2 ? '#ef7a62' : '#f7a58c';
+    g.beginPath(); g.ellipse(i * w / 16 + r() * 20, h * 0.14 + r() * 20, 34, 20, r() * 3, 0, 7); g.fill();
+  }
+});
+function lampwork() {
+  const g = new THREE.Group(), R = 1;
+  const body = mesh(new THREE.SphereGeometry(R, 64, 40), phys({ map: lampTex, roughness: 0.1, clearcoat: 1, clearcoatRoughness: 0.05 }));
+  g.add(body);
+  const petalM = [phys({ color: 0xf07c62, roughness: 0.15, clearcoat: 1 }), phys({ color: 0xf8b19a, roughness: 0.15, clearcoat: 1 })];
+  for (let i = 0; i < 9; i++) {                       // raised glass flower on top
+    const a = i / 9 * Math.PI * 2, rr = 0.42, y = Math.sqrt(R * R - rr * rr) + 0.02;
+    const p = mesh(new THREE.SphereGeometry(1, 24, 16), petalM[i % 2]);
+    p.scale.set(0.3, 0.1, 0.17); p.position.set(Math.cos(a) * rr, y - 0.02, Math.sin(a) * rr);
+    p.rotation.set(0, -a, -0.45); g.add(p);
+  }
+  const ctr = mesh(new THREE.SphereGeometry(1, 24, 16), phys({ color: 0xf2d27a, roughness: 0.2, clearcoat: 1 }));
+  ctr.scale.set(0.2, 0.1, 0.2); ctr.position.y = R + 0.02; g.add(ctr);
+  return g;
+}
+const lw = put('lw', 'glass', lampwork(), 160, 530, 115, 115, 65, 108);
+lw.scale.set(0.575 * 0.92, 0.54, 0.575);
+
+/* ===== 8 · Gold clasp, findings, spacers and charms ===== */
+const goldBall = r => mesh(new THREE.SphereGeometry(1, 40, 24), M.gold);
+put('gA1', 'gold', goldBall(), 420, 446, 28, 28, 0, 28, { gem: false });
+put('capA', 'gold', goldBall(), 453, 448, 40, 40, 0, 38, { gem: false });
+put('corrA', 'gold', mesh(corrugatedGeo(), M.gold), 490, 458, 42, 42, 10, 42, { gem: false });
+put('corrB', 'gold', mesh(corrugatedGeo(), M.gold), 730, 720, 45, 45, -8, 45, { gem: false });
+put('capB', 'gold', goldBall(), 765, 715, 40, 40, 0, 38, { gem: false });
+put('gB', 'gold', goldBall(), 795, 710, 28, 28, 0, 28, { gem: false });
+function ring(R, tube) { const m = mesh(new THREE.TorusGeometry(R, tube, 18, 64), M.gold); m.rotation.x = Math.PI / 2; const g = new THREE.Group(); g.add(m); return g; }
+put('toggle', 'gold', ring(0.17, 0.035), 372, 432, 40, 40, 0, 7, { scale: false, gem: false });
+put('ringB', 'gold', ring(0.19, 0.04), 850, 705, 45, 45, 0, 8, { scale: false, gem: false });
+put('bailP', 'gold', ring(0.15, 0.035), 900, 878, 36, 36, 0, 7, { scale: false, gem: false });
+put('bailH', 'gold', ring(0.2, 0.04), 982, 835, 48, 48, 0, 8, { scale: false, gem: false });
+
+/* organic hoop clasp */
+{
+  const r = rng(101), pts = [];
+  for (let k = 0; k < 11; k++) {
+    const a = k / 11 * Math.PI * 2 - Math.PI / 2;
+    pts.push(new THREE.Vector3(Math.cos(a) * 0.62 * (1 + (r() - 0.5) * 0.12) + Math.sin(a) * 0.08, 0, Math.sin(a) * 0.92 * (1 + (r() - 0.5) * 0.08)));
+  }
+  const curve = new THREE.CatmullRomCurve3(pts, true, 'catmullrom', 0.5);
+  const geo = organicTube(curve, 240, 20, t => 0.1 * (1 + 0.28 * Math.sin(t * 6.283 * 3 + 1) + 0.16 * Math.sin(t * 6.283 * 7 + 2)));
+  const g = new THREE.Group(); g.add(mesh(geo, M.gold));
+  put('hoop', 'gold', g, 906, 785, 126, 184, -6, 22, { scale: false, gem: false });
+  g.position.y = 0.12;
+}
+
+/* resin daisy pendant */
+const centerTex = canvasTex(512, 512, (g, w, h) => {
+  const c = w / 2, rg = g.createRadialGradient(c, c, 0, c, c, c);
+  rg.addColorStop(0, '#c9cf74'); rg.addColorStop(0.45, '#8ea04a'); rg.addColorStop(0.8, '#55692a'); rg.addColorStop(1, '#3a4a1c');
+  g.fillStyle = rg; g.beginPath(); g.arc(c, c, c, 0, 7); g.fill();
+  const r = rng(9);
+  for (let ring = 0; ring < 6; ring++) {               // tiny disc florets
+    const d = 70 + ring * 32, n = 14 + ring * 7;
+    for (let i = 0; i < n; i++) {
+      const a = i / n * 7 + ring * 0.3;
+      g.fillStyle = ring > 3 ? '#2c3a14' : '#6d7f2e';
+      g.beginPath(); g.ellipse(c + Math.cos(a) * d, c + Math.sin(a) * d, 9, 15, a, 0, 7); g.fill();
+      g.fillStyle = 'rgba(230,226,140,.6)'; g.beginPath(); g.arc(c + Math.cos(a) * (d - 4), c + Math.sin(a) * (d - 4), 3, 0, 7); g.fill();
+    }
+  }
+  g.strokeStyle = 'rgba(70,80,30,.6)'; g.lineWidth = 2;
+  for (let i = 0; i < 40; i++) { const a = i / 40 * 7; g.beginPath(); g.moveTo(c, c); g.lineTo(c + Math.cos(a) * 60, c + Math.sin(a) * 60); g.stroke(); }
+});
+function daisyPendant() {
+  const g = new THREE.Group(), R = 1.5;
+  const rim = mesh(new THREE.TorusGeometry(R, 0.055, 18, 160), M.gold); rim.rotation.x = Math.PI / 2; rim.position.y = 0.1; g.add(rim);
+  const resin = mesh(new THREE.CylinderGeometry(R - 0.03, R - 0.03, 0.16, 120), M.resin); resin.position.y = 0.11; resin.castShadow = false; resin.renderOrder = 2; g.add(resin);
+  const r = rng(17);
+  for (let i = 0; i < 16; i++) {                      // notched white petals
+    const L = 0.8 + r() * 0.1, s = new THREE.Shape();
+    s.moveTo(-0.06, 0); s.bezierCurveTo(-0.22, 0.22 * L, -0.23, 0.78 * L, -0.11, L);
+    s.lineTo(-0.04, 0.95 * L); s.lineTo(0, 0.99 * L); s.lineTo(0.04, 0.95 * L); s.lineTo(0.11, L);
+    s.bezierCurveTo(0.23, 0.78 * L, 0.22, 0.22 * L, 0.06, 0);
+    const pg = new THREE.ShapeGeometry(s, 10); pg.translate(0, 0.44, 0); pg.rotateX(-Math.PI / 2);
+    const rot = i / 16 * Math.PI * 2 + (r() - 0.5) * 0.08, yy = 0.095 + (i % 2) * 0.008;
+    const p = mesh(pg, M.petal); p.position.y = yy; p.rotation.y = rot; g.add(p);
+    const edge = mesh(pg, M.petalEdge); edge.scale.setScalar(1.045); edge.position.y = yy - 0.003; edge.rotation.y = rot; g.add(edge);
+  }
+  const ctr = mesh(new THREE.CircleGeometry(0.6, 64), new THREE.MeshStandardMaterial({ map: centerTex, roughness: 0.7 }));
+  ctr.rotation.x = -Math.PI / 2; ctr.position.y = 0.112; g.add(ctr);
+  const bail = mesh(new THREE.TorusGeometry(0.1, 0.03, 12, 40), M.gold); bail.position.set(0.15, 0.1, -R - 0.06); bail.rotation.y = 0.5; g.add(bail);
+  return g;
+}
+put('pendant', 'gold', daisyPendant(), 868, 1040, 305, 305, 0, 22, { scale: false, y: 0, gem: false });
+
+/* aventurine heart charm */
+const aventTex = canvasTex(512, 512, (g, w, h) => {
+  const lg = g.createLinearGradient(0, 0, w, h);
+  lg.addColorStop(0, '#a3b8aa'); lg.addColorStop(0.5, '#8ca393'); lg.addColorStop(1, '#78907f');
+  g.fillStyle = lg; g.fillRect(0, 0, w, h);
+  const r = rng(23);
+  for (let i = 0; i < 900; i++) {
+    g.fillStyle = r() < 0.7 ? `rgba(70,92,78,${0.15 + r() * 0.35})` : `rgba(225,238,228,${0.3 + r() * 0.5})`;
+    g.beginPath(); g.arc(r() * w, r() * h, 0.6 + r() * 2.2, 0, 7); g.fill();
+  }
+});
+aventTex.repeat.set(0.5, 0.5); aventTex.offset.set(0.5, 0.5);
+function heartShape(k = 1) {
+  const s = new THREE.Shape(), P = (x, y) => [x * k, y * k];
+  s.moveTo(...P(0, 0.55));
+  s.bezierCurveTo(...P(0.05, 0.98), ...P(0.72, 1.04), ...P(0.73, 0.52));
+  s.bezierCurveTo(...P(0.74, 0.12), ...P(0.32, -0.45), ...P(0, -1));
+  s.bezierCurveTo(...P(-0.32, -0.45), ...P(-0.74, 0.12), ...P(-0.73, 0.52));
+  s.bezierCurveTo(...P(-0.72, 1.04), ...P(-0.05, 0.98), ...P(0, 0.55));
+  return s;
+}
+function heartCharm() {
+  const g = new THREE.Group();
+  const bz = new THREE.ExtrudeGeometry(heartShape(1.07), { depth: 0.08, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 2, curveSegments: 24 });
+  bz.rotateX(-Math.PI / 2); const bezel = mesh(bz, M.gold); bezel.position.y = 0.02; g.add(bezel);
+  const st = new THREE.ExtrudeGeometry(heartShape(1), { depth: 0.08, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.03, bevelSegments: 4, curveSegments: 24 });
+  st.rotateX(-Math.PI / 2);
+  const stone = mesh(st, [phys({ map: aventTex, roughness: 0.32, clearcoat: 0.6 }), phys({ color: 0x7f9787, roughness: 0.35 })]);
+  stone.position.y = 0.1; g.add(stone);
+  g.scale.setScalar(0.95);
+  return g;
+}
+put('heart', 'gold', heartCharm(), 1047, 930, 150, 200, -22, 26, { scale: false, y: 0, gem: false });
+items.heart.ang = 22 * DEG; items.heart.a = 0.55; items.heart.b = 0.75;
+
+/* ---------- stringing order (traced bead-by-bead from the photo) ---------- */
+const ORDER = ['toggle', 'gA1', 'capA', 'corrA', 'sq1', 'pl3', 'pd4', 'am6', 'pk2', 'gr2', 'am2', 'cf1', 'pl2', 'pd2', 'fa2', 'sq4',
+  'pd3', 'pk3', 'ct2', 'am5', 'cq1', 'sq2', 'pl4', 'cf2', 'am3', 'pd5', 'gr1', 'pk1', 'cz', 'am1', 'pd1', 'fa1', 'pl1', 'sq3',
+  'am4', 'lw', 'ct1', 'pd6', 'fa3', 'cq2', 'corrB', 'capB', 'gB', 'ringB'];
+function radAlong(it, dirAng) {
+  const phi = dirAng - it.ang, a = it.a, b = it.b;
+  return a * b / Math.sqrt((b * Math.cos(phi)) ** 2 + (a * Math.sin(phi)) ** 2);
+}
+const spacerGeo = new THREE.SphereGeometry(0.105, 24, 16);
+const wirePts = [];
+for (let i = 0; i < ORDER.length; i++) {
+  const A = items[ORDER[i]];
+  wirePts.push(new THREE.Vector3(A.x, 0.13, A.z));
+  if (i === ORDER.length - 1) break;
+  const B = items[ORDER[i + 1]];
+  if (!A.gem || !B.gem) continue;
+  const dx = B.x - A.x, dz = B.z - A.z, d = Math.hypot(dx, dz), ang = Math.atan2(dz, dx);
+  const ra = radAlong(A, ang), rb = radAlong(B, ang + Math.PI), gap = d - ra - rb;
+  const t = ra + gap / 2;
+  const sp = mesh(spacerGeo, M.gold);
+  sp.position.set(A.x + dx / d * t, 0.105, A.z + dz / d * t);
+  G.gold.add(sp);
+  wirePts.push(new THREE.Vector3(sp.position.x, 0.105, sp.position.z));
+}
+const wire = mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(wirePts, false, 'centripetal'), 900, 0.014, 6), M.gold);
+G.gold.add(wire);
+
+/* ---------------- labels: thin line + short tag per section ---------------- */
+const labelLayer = document.getElementById('labels');
+const lineMat = () => new THREE.LineBasicMaterial({ color: 0x8c8580, transparent: true, opacity: 0, depthTest: false });
+for (const s of SECTIONS) {
+  let best = null, bestD = -Infinity;
+  s.group.children.forEach(ch => {
+    if (ch === wire) return;
+    const d = ch.position.x * s.dirH.x + ch.position.z * s.dirH.z;
+    if (d > bestD) { bestD = d; best = ch; }
+  });
+  const a = best.position.clone();
+  const tip = a.clone().addScaledVector(s.dirH, 1.5).add(new THREE.Vector3(0, 1.0, 0));
+  s.line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, tip]), lineMat());
+  s.line.renderOrder = 10; s.group.add(s.line);
+  s.tip = new THREE.Object3D(); s.tip.position.copy(tip); s.group.add(s.tip);
+  const el = document.createElement('div'); el.className = 'lbl';
+  el.innerHTML = `<i style="background:${s.color}"></i>${s.name}`;
+  labelLayer.appendChild(el); s.el = el;
+}
+
+/* ---------------- take-apart animation ---------------- */
+function cubicBezier(x1, y1, x2, y2) {
+  const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx, cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+  const sx = t => ((ax * t + bx) * t + cx) * t, sy = t => ((ay * t + by) * t + cy) * t;
+  return x => {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    let lo = 0, hi = 1, t = x;
+    for (let i = 0; i < 30; i++) { const v = sx(t); if (Math.abs(v - x) < 1e-6) break; if (v < x) lo = t; else hi = t; t = (lo + hi) / 2; }
+    return sy(t);
+  };
+}
+const ease = cubicBezier(0.42, 0, 0.18, 1);   // gentle start, long slow settle
+const DURATION = 3000;
+let p = 0, from = 0, to = 0, t0 = 0, prevP = 0;
+const btn = document.getElementById('toggle');
+btn.addEventListener('click', () => {
+  from = p; to = to === 1 ? 0 : 1; t0 = performance.now();
+  btn.textContent = to ? 'Put it back together' : 'Take it apart';
+});
+
+/* camera eases up and back while the pieces spread, without fighting the user's own orbit/zoom */
+const zoomF = q => 1 + q * (0.95 + Math.max(0, 1.3 - camera.aspect) * 0.9), liftF = q => 0.6 * q, tiltF = q => -0.12 * q;
+const off = new THREE.Vector3(), sph = new THREE.Spherical();
+function followExplode(q, qPrev) {
+  const dy = liftF(q) - liftF(qPrev);
+  camera.position.y += dy; controls.target.y += dy;
+  off.subVectors(camera.position, controls.target).multiplyScalar(zoomF(q) / zoomF(qPrev));
+  sph.setFromVector3(off);                                  // lower the viewing angle so the layers read side-on
+  sph.phi = THREE.MathUtils.clamp(sph.phi + tiltF(q) - tiltF(qPrev), 0.05, controls.maxPolarAngle);
+  off.setFromSpherical(sph);
+  camera.position.copy(controls.target).add(off);
+  ground.material.opacity = 0.12 - 0.06 * q;
+}
+
+/* ---------------- loop ---------------- */
+const clock = new THREE.Clock();
+const pv = new THREE.Vector3();
+function frame(now) {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  root.rotation.y += dt * 0.12;                         // slow, constant turn
+
+  if (p !== to) {
+    const t = Math.min(1, (now - t0) / DURATION);
+    p = from + (to - from) * ease(t);
+    if (t >= 1) p = to;
+  }
+  if (p !== prevP) { followExplode(p, prevP); prevP = p; }
+  for (const s of SECTIONS) s.group.position.copy(s.offset).multiplyScalar(p);
+
+  controls.update();
+  renderer.render(scene, camera);
+
+  const q = THREE.MathUtils.smoothstep(p, 0.72, 1);
+  const W = innerWidth, H = innerHeight;
+  for (const s of SECTIONS) {
+    s.line.material.opacity = q * 0.85;
+    s.line.visible = q > 0.001;
+    if (q < 0.001) { s.el.style.opacity = 0; continue; }
+    pv.setFromMatrixPosition(s.tip.matrixWorld).project(camera);
+    const behind = pv.z > 1;
+    s.el.style.opacity = behind ? 0 : q;
+    // keep every tag fully inside the frame (matters when embedded in a small square)
+    const hw = (s.w ||= s.el.offsetWidth) / 2 + 6, hh = 14;
+    const x = THREE.MathUtils.clamp((pv.x * 0.5 + 0.5) * W, hw, W - hw);
+    const y = THREE.MathUtils.clamp((-pv.y * 0.5 + 0.5) * H, hh, H - hh);
+    s.el.style.transform = `translate(${x}px,${y}px) translate(-50%,-50%)`;
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>

@@ -179,6 +179,8 @@ dialog::backdrop{background:var(--shade)}
 .pd-thumb{width:68px;height:68px;padding:0;border-radius:10px;overflow:hidden;border:2px solid transparent;background:var(--bg-alt);cursor:pointer}
 .pd-thumb[aria-current="true"]{border-color:var(--gold)}
 .pd-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.pd-thumb-3d{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:var(--gold-ink);font:600 12px/1 var(--body);letter-spacing:.06em}
+.pd-main .pd-3d{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:#fff}
 .pd-info{min-width:0;display:flex;flex-direction:column;gap:14px}
 .pd-info h2{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(30px,4vw,40px);line-height:1.1;overflow-wrap:anywhere}
 .pd-info .eyebrow{margin:0}

@@ -78,6 +78,8 @@ for (const f of files) {
     status: STATUSES.includes(raw.status) ? raw.status : 'ready',
     sizes: str(raw.sizes), materials: str(raw.materials), description: str(raw.description),
     photos,
+    // Optional interactive 3D view: drop src/3d/<piece-name>.html in the repo and the piece page gets a "3D" tile.
+    model3d: existsSync(path.join(ROOT, 'src/3d', `${slug}.html`)) ? `3d/${slug}/` : '',
     order: Number.isFinite(Number(raw.order)) && raw.order !== '' && raw.order != null ? Number(raw.order) : 1e9,
   });
 }
@@ -134,10 +136,12 @@ function cardHtml(p, base) {
   return `<div class="card"><a class="card-open" href="${esc(base)}pieces/${p.slug}/"><span class="card-img photo-box">${img}</span><span class="card-text"><span class="card-col">${esc(eyebrow(p))}</span><h3 class="card-name">${esc(p.name)}</h3><span class="card-price"><span>${p.price == null ? 'Ask for price' : priceText(p)}</span>${chip}</span></span></a></div>`;
 }
 
+const ICON3D = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.8 20 7.4v9.2L12 21.2 4 16.6V7.4z"/><path d="M4 7.4l8 4.6 8-4.6M12 12v9.2"/></svg>';
 function pieceHtml(p, base) {
   const main = p.photos[0] ? `<img src="${esc(base + p.photos[0].large)}" alt="${esc(p.name)}" width="1400" height="1400" fetchpriority="high">` : '';
-  const thumbs = p.photos.length > 1 ? `<div class="pd-thumbs">${p.photos.map((ph, i) =>
-    `<button type="button" class="pd-thumb" aria-label="Photo ${i + 1} of ${p.photos.length}" aria-current="${i === 0}" data-large="${esc(base + ph.large)}" data-alt="${esc(`${p.name}, photo ${i + 1}`)}"><img src="${esc(base + ph.small)}" alt="" width="600" height="600" loading="lazy"></button>`).join('')}</div>` : '';
+  const tile3d = p.model3d ? `<button type="button" class="pd-thumb pd-thumb-3d" aria-label="View ${esc(p.name)} in 3D" aria-current="false" data-3d="${esc(base + p.model3d)}">${ICON3D}<span>3D</span></button>` : '';
+  const thumbs = p.photos.length > 1 || tile3d ? `<div class="pd-thumbs">${p.photos.map((ph, i) =>
+    `<button type="button" class="pd-thumb" aria-label="Photo ${i + 1} of ${p.photos.length}" aria-current="${i === 0}" data-large="${esc(base + ph.large)}" data-alt="${esc(`${p.name}, photo ${i + 1}`)}"><img src="${esc(base + ph.small)}" alt="" width="600" height="600" loading="lazy"></button>`).join('')}${tile3d}</div>` : '';
   const facts = [p.materials && ['Materials', p.materials], p.sizes && ['Sizes', p.sizes], ['Availability', STATUS_LABEL[p.status]]]
     .filter(Boolean).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
   const email = settings.email;
@@ -233,6 +237,11 @@ await writeFile(path.join(OUT, 'llms.txt'), [
 const indexNowKey = existsSync(path.join(ROOT, 'indexnow-key.txt')) ? str(await readFile(path.join(ROOT, 'indexnow-key.txt'), 'utf8')) : '';
 if (/^[a-f0-9]{32}$/.test(indexNowKey)) await writeFile(path.join(OUT, `${indexNowKey}.txt`), indexNowKey);
 
+for (const p of pieces) {
+  if (!p.model3d) continue;
+  await mkdir(path.join(OUT, '3d', p.slug), { recursive: true });
+  await copyFile(path.join(ROOT, 'src/3d', `${p.slug}.html`), path.join(OUT, '3d', p.slug, 'index.html'));
+}
 for (const f of ['style.css', 'app.js']) await copyFile(path.join(ROOT, 'src', f), path.join(OUT, f));
 await mkdir(path.join(OUT, 'media/site'), { recursive: true });
 for (const f of await readdir(path.join(ROOT, 'media/site'))) {
