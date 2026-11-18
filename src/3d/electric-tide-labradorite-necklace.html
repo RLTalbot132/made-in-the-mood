@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Electric Tide Labradorite Necklace · 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;background:#fff;overflow:hidden;font-family:Inter,system-ui,-apple-system,sans-serif;color:#2b2622}
+  #c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+  #c:active{cursor:grabbing}
+  .hud{position:fixed;left:24px;top:20px;pointer-events:none}
+  .hud h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:30px;line-height:1.1;margin:0;letter-spacing:.2px}
+  .hud p{margin:5px 0 0;font-size:11.5px;color:#9a9189;letter-spacing:.5px;text-transform:uppercase}
+  .bar{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:9px}
+  #toggle{font:500 14px Inter,system-ui,sans-serif;padding:12px 28px;border-radius:999px;border:1px solid #ddd3c8;background:#fff;color:#2b2622;cursor:pointer;
+    box-shadow:0 6px 22px rgba(90,64,40,.10);transition:background .2s,box-shadow .2s,transform .15s;min-width:210px}
+  #toggle:hover{background:#fbf7f2;box-shadow:0 8px 26px rgba(90,64,40,.14)}
+  #toggle:active{transform:scale(.98)}
+  .hint{font-size:11.5px;color:#aaa198;letter-spacing:.3px}
+  #labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+  .lbl{position:absolute;left:0;top:0;white-space:nowrap;font-size:12.5px;font-weight:500;padding:5px 12px 5px 9px;border-radius:999px;
+    background:rgba(255,255,255,.95);border:1px solid #e5ddd4;box-shadow:0 2px 12px rgba(60,40,20,.08);display:flex;align-items:center;gap:7px;
+    opacity:0;will-change:transform,opacity}
+  .lbl i{width:9px;height:9px;border-radius:50%;display:inline-block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+  #err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:24px;color:#6b625b;font-size:14px}
+  @media (max-width:600px){.hud h1{font-size:24px}.hud{left:16px;top:14px}}
+  /* Embedded on madeinthemoodjewelry.com: the page already shows the name, so hide the title and match the site's button */
+  .embed .hud{display:none}
+  .embed #c{touch-action:pan-y}
+  .embed .bar{bottom:16px}
+  .embed #toggle{background:#3F4FB0;color:#fff;border-color:#3F4FB0;font-family:Figtree,Inter,system-ui,sans-serif;font-weight:600;padding:11px 24px;min-width:0;white-space:nowrap}
+  .embed #toggle:hover{background:#3F4FB0;filter:brightness(1.15)}
+  .embed .hint{display:none}
+  .embed .lbl{font-size:11.5px;padding:4px 10px 4px 8px}
+  @media (max-width:440px){.embed #toggle{font-size:13px;padding:9px 18px}.embed .lbl{font-size:10.5px;padding:3px 8px 3px 7px;gap:5px}.embed .lbl i{width:7px;height:7px}}
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<script>if (/[?&]embed\b/.test(location.search)) document.body.classList.add('embed');</script>
+<canvas id="c"></canvas>
+<div id="labels"></div>
+<div class="hud">
+  <h1>Electric Tide Labradorite Necklace</h1>
+  <p>Made in the Mood · built entirely in code</p>
+</div>
+<div class="bar">
+  <button id="toggle" type="button">Take it apart</button>
+  <div class="hint">Drag to rotate · Scroll to zoom</div>
+</div>
+<div id="err">This 3D view needs WebGL, which isn’t available in this browser.</div>
+
+<script type="module">
+/* Electric Tide Labradorite Necklace — interactive 3D model, generated for madeinthemoodjewelry.com.
+   Every part is built from shapes in code; positions are traced from the product photo. */
+const CFG = {
+  S: 0.0108, CX: 545, CY: 680, metal: 'silver',
+  sections: [
+    { key: 'lab',    name: 'Labradorite Rondelles',     color: '#3d5a7a' },
+    { key: 'spacer', name: 'Sterling Spacer Discs',     color: '#c8c8cc' },
+    { key: 'nugget', name: 'Sterling Faceted Beads',    color: '#e2e2e6' },
+    { key: 'caps',   name: 'End Cones & Accent Beads',  color: '#8d8e96' },
+    { key: 'clasp',  name: 'Clasp & Extender Chain',    color: '#b4b5bb' },
+  ],
+  explode: { dist: 4.3, liftLo: 0.5, liftHi: 1.6, zoom: 1.05 },
+  camTarget: [0, 0.3, 1.3],
+};
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+
+/* ================= shared viewer engine =================
+   Photo coordinates (px) map to the table: x = photo x, z = photo y, y = up.
+   CFG.S is scene units per photo pixel; CFG.CX / CFG.CY is the photo point placed at the origin. */
+const DEG = Math.PI / 180;
+const S = CFG.S, CX = CFG.CX, CY = CFG.CY;
+const u = px => px * S;                                   // photo px -> scene units
+
+/* ---------------- renderer / scene ---------------- */
+const canvas = document.getElementById('c');
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true }); }
+catch (e) { document.getElementById('err').style.display = 'flex'; throw e; }
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = CFG.exposure ?? 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xffffff);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 400);
+const controls = new OrbitControls(camera, canvas);
+Object.assign(controls, { enableDamping: true, dampingFactor: 0.08, minDistance: 4, maxDistance: 60, maxPolarAngle: Math.PI / 2 - 0.04, rotateSpeed: 0.7, zoomSpeed: 0.8 });
+function fitCamera() {
+  const a = innerWidth / innerHeight, k = (a >= 1.3 ? 1 : Math.pow(1.3 / a, 0.9)) * (CFG.camScale ?? 1);
+  controls.target.set(...(CFG.camTarget ?? [0, 0.3, 0.4]));
+  camera.position.set(0, 10.8 * k, 13.2 * k).add(controls.target);
+}
+fitCamera();
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xefe5d8, 0.55));
+const key = new THREE.DirectionalLight(0xffffff, 1.55);
+key.position.set(5, 15, 8);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 60 });
+key.shadow.bias = -0.0004;
+key.shadow.normalBias = 0.02;
+scene.add(key);
+const fill = new THREE.DirectionalLight(0xfff0de, 0.35);
+fill.position.set(-9, 6, -5);
+scene.add(fill);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.ShadowMaterial({ opacity: 0.12 }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+/* ---------------- utilities ---------------- */
+function rng(seed) {
+  let a = (seed * 9301 + 49297) >>> 0;
+  return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function makeNoise(seed, n = 6) {
+  const r = rng(seed), terms = [];
+  for (let i = 0; i < n; i++) {
+    const d = new THREE.Vector3(r() * 2 - 1, r() * 2 - 1, r() * 2 - 1).normalize();
+    terms.push({ d, k: 1.6 + r() * 3.4, ph: r() * 6.283, a: (0.5 + r()) / (1 + i * 0.35) });
+  }
+  const norm = terms.reduce((s, t) => s + t.a, 0);
+  return v => terms.reduce((s, t) => s + t.a * Math.sin(t.d.dot(v) * t.k + t.ph), 0) / norm;
+}
+const C = h => new THREE.Color(h);
+const phys = o => new THREE.MeshPhysicalMaterial(o);
+const clamp01 = t => Math.min(1, Math.max(0, t));
+const mix3 = (col, a, b, c, t1, t2) => col.copy(C(a)).lerp(C(b), clamp01(t1)).lerp(C(c), clamp01(t2));
+const tmpV = new THREE.Vector3();
+function colorize(g, fn) {
+  const p = g.attributes.position, c = new Float32Array(p.count * 3), col = new THREE.Color();
+  for (let i = 0; i < p.count; i++) { tmpV.fromBufferAttribute(p, i); fn(tmpV, col); col.toArray(c, i * 3); }
+  g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+  return g;
+}
+/* mottled colour from three tones, driven by smooth noise */
+function mottle(g, seed, a, b, c, freq = 2.4, fleck = 0) {
+  const n = makeNoise(seed, 6);
+  return colorize(g, (v, col) => {
+    const t = n(v.clone().multiplyScalar(freq)) * 0.5 + 0.5;
+    mix3(col, a, b, c, t, Math.max(0, n(v.clone().multiplyScalar(freq * 2.2)) - (0.3 - fleck)) * 1.6);
+  });
+}
+function canvasTex(w, h, draw) {
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  draw(cv.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+function mesh(g, m) { const o = new THREE.Mesh(g, m); o.castShadow = true; o.receiveShadow = true; return o; }
+function shadowAll(o) { o.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } }); return o; }
+function group(...kids) { const g = new THREE.Group(); kids.forEach(k => k && g.add(k)); return g; }
+
+/* faceted stone: subdivided icosahedron with nudged vertices so facets are irregular */
+function gemGeo(detail, jit, seed, shape) {
+  const g = new THREE.IcosahedronGeometry(1, detail);
+  const r0 = rng(seed); g.rotateX(r0() * 6.28); g.rotateY(r0() * 6.28);
+  const r = rng(seed * 13 + 7), map = new Map(), p = g.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i);
+    const k = `${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`;
+    let s = map.get(k); if (s === undefined) { s = 1 + (r() * 2 - 1) * jit; map.set(k, s); }
+    v.multiplyScalar(s); if (shape) shape(v);
+    p.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+/* smooth lumpy sphere (baroque pearls, nuggets) */
+function blobGeo(seed, amp, ws = 64, hs = 48) {
+  let g = new THREE.SphereGeometry(1, ws, hs);
+  g.deleteAttribute('normal'); g.deleteAttribute('uv'); g = mergeVertices(g);
+  const n = makeNoise(seed, 7), p = g.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i); const d = v.clone().normalize();
+    v.multiplyScalar(1 + amp * n(d)); p.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+/* rondelle (lathe), hole axis along +X. faceted = few flat facets */
+function rondelleGeo(faceted, radial, prof) {
+  const pts = [], n = prof ?? (faceted ? 8 : 18);
+  for (let i = 0; i <= n; i++) {
+    const t = -Math.PI / 2 + Math.PI * i / n, c = Math.cos(t), s = Math.sin(t);
+    pts.push(new THREE.Vector2(Math.max(0.001, Math.pow(Math.abs(c), faceted ? 0.75 : 0.55)), Math.sign(s) * Math.pow(Math.abs(s), 1.25)));
+  }
+  const g = new THREE.LatheGeometry(pts, radial ?? (faceted ? 16 : 48));
+  g.rotateZ(Math.PI / 2);
+  return g;
+}
+/* flat disc with rounded edge and centre hole (heishi, spacer discs), axis +X */
+function discGeo(holeR = 0.32, radial = 28) {
+  const pts = [], n = 10;
+  pts.push(new THREE.Vector2(holeR, -1));
+  for (let i = 0; i <= n; i++) {
+    const t = -Math.PI / 2 + Math.PI * i / n;
+    pts.push(new THREE.Vector2(0.78 + 0.22 * Math.cos(t), Math.sin(t)));
+  }
+  pts.push(new THREE.Vector2(holeR, 1));
+  const g = new THREE.LatheGeometry(pts, radial);
+  g.rotateZ(Math.PI / 2);
+  return g;
+}
+/* fluted / corrugated metal bead, hole axis +X */
+function corrugatedGeo(ridges = 18, depth = 0.07) {
+  let g = new THREE.SphereGeometry(1, 72, 36);
+  g.deleteAttribute('normal'); g.deleteAttribute('uv'); g = mergeVertices(g);
+  const p = g.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i);
+    const phi = Math.atan2(v.z, v.x), f = 1 + depth * Math.cos(ridges * phi) * Math.sqrt(Math.max(0, 1 - v.y * v.y));
+    v.x *= f; v.z *= f; v.y *= 0.88; p.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals(); g.rotateZ(Math.PI / 2);
+  return g;
+}
+/* beaded/fluted gold rondelle spacer ring, axis +X */
+function goldRondelleGeo() {
+  const g = new THREE.TorusGeometry(0.62, 0.38, 20, 40);
+  const p = g.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i);
+    const a = Math.atan2(v.y, v.x), f = 1 + 0.06 * Math.cos(a * 16);
+    v.x *= f; v.y *= f; p.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.rotateY(Math.PI / 2); g.scale(1 / 0.38, 1, 1); g.computeVertexNormals();
+  return g;
+}
+function flowerShape(R, petals, depth, pw, rot = 0) {
+  const s = new THREE.Shape(), N = 360;
+  for (let i = 0; i <= N; i++) {
+    const t = i / N * Math.PI * 2;
+    const r = R * (1 - depth + depth * Math.pow(Math.abs(Math.cos(petals * (t - rot) / 2)), pw));
+    i ? s.lineTo(r * Math.cos(t), r * Math.sin(t)) : s.moveTo(r * Math.cos(t), r * Math.sin(t));
+  }
+  return s;
+}
+/* tube with a wobbling radius (organic clasps) */
+function organicTube(curve, segs, radial, rFn, closed = true) {
+  const fr = curve.computeFrenetFrames(segs, closed), pos = [], idx = [];
+  for (let i = 0; i <= segs; i++) {
+    const t = i / segs, c = curve.getPointAt(t), N = fr.normals[i], B = fr.binormals[i], r = rFn(t);
+    for (let j = 0; j <= radial; j++) {
+      const a = j / radial * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+      pos.push(c.x + r * (ca * N.x + sa * B.x), c.y + r * (ca * N.y + sa * B.y), c.z + r * (ca * N.z + sa * B.z));
+    }
+  }
+  for (let i = 0; i < segs; i++) for (let j = 0; j < radial; j++) {
+    const a = i * (radial + 1) + j, b = a + radial + 1;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+/* flat extruded shape lying on the table (shape drawn in px, +y = up in the photo) */
+function slab(shape, depthPx, mat, bevelPx = 0, segs = 3) {
+  const g = new THREE.ExtrudeGeometry(shape, { depth: u(depthPx), bevelEnabled: bevelPx > 0, bevelThickness: u(bevelPx), bevelSize: u(bevelPx), bevelSegments: segs, curveSegments: 24 });
+  g.rotateX(-Math.PI / 2);
+  const m = mesh(g, mat); m.position.y = u(bevelPx);
+  return m;
+}
+function smoothShapePx(pts) {                              // closed smooth outline through photo-px points
+  const v = pts.map(([x, y]) => new THREE.Vector2(u(x), u(-y)));
+  return new THREE.Shape(new THREE.SplineCurve([...v, v[0]]).getPoints(pts.length * 12));
+}
+function shapePx(pts) { const s = new THREE.Shape(); pts.forEach(([x, y], i) => i ? s.lineTo(u(x), u(-y)) : s.moveTo(u(x), u(-y))); return s; }
+
+/* ---------------- shared materials ---------------- */
+const METAL = {
+  gold:   new THREE.MeshStandardMaterial({ color: 0xf0c25a, metalness: 1, roughness: 0.24, envMapIntensity: 1.45 }),
+  silver: new THREE.MeshStandardMaterial({ color: 0xe8e8ea, metalness: 1, roughness: 0.14, envMapIntensity: 1.3 }),
+};
+/* flat polished metal mirrors the dark parts of the room, so flat charms use a satin finish */
+METAL.goldFlat = new THREE.MeshStandardMaterial({ color: 0xf0c25a, metalness: 1, roughness: 0.34, envMapIntensity: 1.5 });
+METAL.silverFlat = new THREE.MeshStandardMaterial({ color: 0xf0f0f2, metalness: 1, roughness: 0.3, envMapIntensity: 1.5 });
+const M = { metal: METAL[CFG.metal ?? 'gold'], gold: METAL.gold, silver: METAL.silver, goldFlat: METAL.goldFlat, silverFlat: METAL.silverFlat };
+
+/* ---------------- sections and parts ---------------- */
+const root = new THREE.Group();
+scene.add(root);
+const SECTIONS = CFG.sections;
+const G = {};
+for (const s of SECTIONS) { s.group = new THREE.Group(); s.group.name = s.name; root.add(s.group); G[s.key] = s.group; }
+
+/* put(id, section, object, x, y, w, h, angDeg, vh, opts)
+   Sizes in photo px: w = length along angDeg (clockwise in the photo), h = across, vh = height.
+   Unit-sized geometry is scaled to w/h/vh unless opts.scale === false. */
+const items = {};
+function put(id, sec, obj, px, py, w, h, ang, vh, opt = {}) {
+  const x = u(px - CX), z = u(py - CY);
+  if (opt.scale !== false) obj.scale.set(u(w) / 2, u(vh) / 2, u(h) / 2);
+  obj.position.set(x, opt.y ?? (u(vh) / 2 + (opt.lift ?? 0)), z);
+  obj.rotation.y = -ang * DEG;
+  G[sec].add(obj);
+  items[id] = { x, z, obj, sec, a: u(w) / 2, b: u(h) / 2, ang: ang * DEG };
+  return obj;
+}
+/* turn axial beads (rondelles, discs, spacers) so their hole follows the strand */
+function orientAlong(ids) {
+  for (let i = 0; i < ids.length; i++) {
+    const it = items[ids[i]], a = items[ids[Math.max(0, i - 1)]], b = items[ids[Math.min(ids.length - 1, i + 1)]];
+    if (!it.obj.userData.axial) continue;
+    const ang = Math.atan2(b.z - a.z, b.x - a.x);
+    it.obj.rotation.y = -ang; it.ang = ang;
+  }
+}
+/* thin wire through a list of parts (in order) */
+function wire(ids, sec, mat = M.metal, r = 0.014, y = 0.12, closed = false) {
+  const pts = ids.map(id => new THREE.Vector3(items[id].x, y, items[id].z));
+  const w = mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, closed, 'centripetal'), Math.max(64, pts.length * 12), r, 6, closed), mat);
+  w.userData.noLabel = true; G[sec].add(w); return w;
+}
+
+/* stringAlong: thread a sequence of beads along a traced path.
+   pathPx: [[x,y],...] photo points; seq: [{id?, sec, make: () => Object3D, len (px along path), dia (px), vh?}]
+   Beads touch end-to-end; `gap` px between them. Returns the ids placed. */
+let autoId = 0;
+function stringAlong(pathPx, seq, { gap = 0, start = 0, closed = false, lift = 0 } = {}) {
+  const curve = new THREE.CatmullRomCurve3(pathPx.map(([x, y]) => new THREE.Vector3(u(x - CX), 0, u(y - CY))), closed, 'centripetal');
+  const L = curve.getLength(), ids = [];
+  let s = u(start);
+  for (const b of seq) {
+    const half = u(b.len) / 2; s += half;
+    if (s > L * 1.002) break;
+    const t = Math.min(1, s / L), p = curve.getPointAt(t), tan = curve.getTangentAt(t);
+    const obj = b.make();
+    const vh = b.vh ?? b.dia;
+    if (b.scale !== false) obj.scale.set(u(b.len) / 2, u(vh) / 2, u(b.dia) / 2);
+    const ang = Math.atan2(tan.z, tan.x);
+    obj.position.set(p.x, b.y ?? (u(vh) / 2 + lift), p.z);
+    obj.rotation.y = -ang + (b.spin ?? 0);
+    const id = b.id ?? `auto${autoId++}`;
+    G[b.sec].add(obj);
+    items[id] = { x: p.x, z: p.z, obj, sec: b.sec, a: u(b.len) / 2, b: u(b.dia) / 2, ang };
+    ids.push(id);
+    s += half + u(b.gap ?? gap);
+  }
+  return { ids, used: s / S, length: L / S, curve };
+}
+
+
+/* evenly fill a traced run with identical beads (spec.len px each), e.g. heishi or carnelian runs */
+function pathCurve(pathPx) {
+  const curve = new THREE.CatmullRomCurve3(pathPx.map(([x, y]) => new THREE.Vector3(u(x - CX), 0, u(y - CY))), false, 'centripetal');
+  return { curve, lengthPx: curve.getLength() / S };
+}
+function fillAlong(pathPx, spec, { gap = 0, lift = 0 } = {}) {
+  const L = pathCurve(pathPx).lengthPx, n = Math.max(1, Math.floor((L + gap) / (spec.len + gap)));
+  const g = (L - n * spec.len) / n;
+  return stringAlong(pathPx, Array.from({ length: n }, () => ({ ...spec })), { gap: g, start: g / 2, lift }).ids;
+}
+/* fit an explicit mixed sequence into a traced run, spreading any slack evenly between beads */
+function fitAlong(pathPx, seq, { lift = 0 } = {}) {
+  const L = pathCurve(pathPx).lengthPx, sum = seq.reduce((s, b) => s + b.len, 0), g = Math.max(0, (L - sum) / seq.length);
+  return stringAlong(pathPx, seq, { gap: g, start: g / 2, lift }).ids;
+}
+/* remove filler beads that sit under a feature bead placed at (px, py) */
+function knockout(ids, px, py, rpx) {
+  const x = u(px - CX), z = u(py - CY), r = u(rpx);
+  return ids.filter(id => {
+    const it = items[id];
+    if (Math.hypot(it.x - x, it.z - z) < r) { it.obj.parent.remove(it.obj); delete items[id]; return false; }
+    return true;
+  });
+}
+
+/* ---------------- labels, take-apart, loop ---------------- */
+function finish() {
+  root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  /* each section moves out along its own direction: spread evenly around, in the order of where its parts sit */
+  const n = SECTIONS.length;
+  for (const s of SECTIONS) {
+    const c = new THREE.Vector3(); let k = 0;
+    s.group.children.forEach(ch => { if (!ch.userData.noLabel) { c.add(ch.position); k++; } });
+    s.centroid = c.multiplyScalar(1 / Math.max(1, k));
+    s.cAng = Math.atan2(s.centroid.z, s.centroid.x);
+  }
+  const ordered = [...SECTIONS].sort((a, b) => a.cAng - b.cAng);
+  let best = 0, bestErr = Infinity;
+  for (let b = 0; b < 360; b += 3) {
+    let err = 0;
+    ordered.forEach((s, i) => { const d = Math.abs(((b + i * 360 / n) * DEG - s.cAng + 3 * Math.PI) % (2 * Math.PI) - Math.PI); err += d * d; });
+    if (err < bestErr) { bestErr = err; best = b; }
+  }
+  const E = CFG.explode ?? {};
+  ordered.forEach((s, i) => {
+    const th = s.theta != null ? s.theta * DEG : (best + i * 360 / n) * DEG;
+    s.dirH = new THREE.Vector3(Math.cos(th), 0, Math.sin(th));
+    const dist = s.dist ?? E.dist ?? 6.4, lift = s.lift ?? (i % 2 ? (E.liftHi ?? 1.5) : (E.liftLo ?? 0.45));
+    s.offset = s.dirH.clone().multiplyScalar(dist).setY(lift);
+  });
+
+  const labelLayer = document.getElementById('labels');
+  for (const s of SECTIONS) {
+    let bestCh = null, bestD = -Infinity;
+    s.group.children.forEach(ch => {
+      if (ch.userData.noLabel) return;
+      const d = ch.position.x * s.dirH.x + ch.position.z * s.dirH.z;
+      if (d > bestD) { bestD = d; bestCh = ch; }
+    });
+    const a = bestCh.position.clone();
+    const tip = a.clone().addScaledVector(s.dirH, 1.5).add(new THREE.Vector3(0, 1.0, 0));
+    s.line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, tip]),
+      new THREE.LineBasicMaterial({ color: 0x8c8580, transparent: true, opacity: 0, depthTest: false }));
+    s.line.renderOrder = 10; s.group.add(s.line);
+    s.tip = new THREE.Object3D(); s.tip.position.copy(tip); s.group.add(s.tip);
+    const el = document.createElement('div'); el.className = 'lbl';
+    el.innerHTML = `<i style="background:${s.color}"></i>${s.name}`;
+    labelLayer.appendChild(el); s.el = el;
+  }
+
+  const ease = cubicBezier(0.42, 0, 0.18, 1), DURATION = 3000;
+  let p = 0, from = 0, to = 0, t0 = 0, prevP = 0;
+  const btn = document.getElementById('toggle');
+  btn.addEventListener('click', () => {
+    from = p; to = to === 1 ? 0 : 1; t0 = performance.now();
+    btn.textContent = to ? 'Put it back together' : 'Take it apart';
+  });
+  const zoomF = q => 1 + q * ((E.zoom ?? 0.95) + Math.max(0, 1.3 - camera.aspect) * 0.9), liftF = q => 0.6 * q, tiltF = q => -0.12 * q;
+  const off = new THREE.Vector3(), sph = new THREE.Spherical();
+  function followExplode(q, qPrev) {
+    const dy = liftF(q) - liftF(qPrev);
+    camera.position.y += dy; controls.target.y += dy;
+    off.subVectors(camera.position, controls.target).multiplyScalar(zoomF(q) / zoomF(qPrev));
+    sph.setFromVector3(off);
+    sph.phi = THREE.MathUtils.clamp(sph.phi + tiltF(q) - tiltF(qPrev), 0.05, controls.maxPolarAngle);
+    off.setFromSpherical(sph);
+    camera.position.copy(controls.target).add(off);
+    ground.material.opacity = 0.12 - 0.06 * q;
+  }
+  const clock = new THREE.Clock(), pv = new THREE.Vector3();
+  function frame(now) {
+    const dt = Math.min(clock.getDelta(), 0.05);
+    root.rotation.y += dt * 0.12;
+    if (p !== to) { const t = Math.min(1, (now - t0) / DURATION); p = from + (to - from) * ease(t); if (t >= 1) p = to; }
+    if (p !== prevP) { followExplode(p, prevP); prevP = p; }
+    for (const s of SECTIONS) s.group.position.copy(s.offset).multiplyScalar(p);
+    controls.update();
+    renderer.render(scene, camera);
+    const q = THREE.MathUtils.smoothstep(p, 0.72, 1), W = innerWidth, H = innerHeight;
+    const shown = [];
+    for (const s of SECTIONS) {
+      s.line.material.opacity = q * 0.85; s.line.visible = q > 0.001;
+      if (q < 0.001) { s.el.style.opacity = 0; continue; }
+      pv.setFromMatrixPosition(s.tip.matrixWorld).project(camera);
+      s.el.style.opacity = pv.z > 1 ? 0 : q;
+      const hw = (s.w ||= s.el.offsetWidth) / 2 + 6;
+      s.hh = (s.h ||= s.el.offsetHeight) / 2 + 2;
+      s.sx = THREE.MathUtils.clamp((pv.x * 0.5 + 0.5) * W, hw, W - hw); s.sy = THREE.MathUtils.clamp((-pv.y * 0.5 + 0.5) * H, s.hh, H - s.hh); s.hw = hw;
+      shown.push(s);
+    }
+    /* nudge overlapping tags apart vertically (matters on small screens) */
+    shown.sort((a, b) => a.sy - b.sy);
+    for (let pass = 0; pass < 3; pass++) for (let i = 0; i < shown.length; i++) for (let j = i + 1; j < shown.length; j++) {
+      const A = shown[i], B = shown[j];
+      if (Math.abs(A.sx - B.sx) < A.hw + B.hw - 12 && B.sy - A.sy < A.hh + B.hh) {
+        const push = (A.hh + B.hh - (B.sy - A.sy)) / 2;
+        A.sy = Math.max(A.hh, A.sy - push); B.sy = Math.min(H - B.hh, B.sy + push);
+      }
+    }
+    for (const s of shown) s.el.style.transform = `translate(${s.sx}px,${s.sy}px) translate(-50%,-50%)`;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+}
+function cubicBezier(x1, y1, x2, y2) {
+  const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx, cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+  const sx = t => ((ax * t + bx) * t + cx) * t, sy = t => ((ay * t + by) * t + cy) * t;
+  return x => {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    let lo = 0, hi = 1, t = x;
+    for (let i = 0; i < 30; i++) { const v = sx(t); if (Math.abs(v - x) < 1e-6) break; if (v < x) lo = t; else hi = t; t = (lo + hi) / 2; }
+    return sy(t);
+  };
+}
+/* ===== Electric Tide: labradorite rondelles on sterling, traced from the flat photo (0.75x view) ===== */
+const D = pts => pts.map(([x, y]) => [x / 0.75, y / 0.75]);
+const MAT = {
+  lab: phys({ vertexColors: true, roughness: 0.08, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.03, iridescence: 0.5, iridescenceIOR: 1.7,
+    iridescenceThicknessRange: [300, 420], sheen: 0.25, sheenColor: C(0x4f8fd0), envMapIntensity: 0.8, flatShading: true }),
+  silverFacet: new THREE.MeshStandardMaterial({ color: 0xf6f6f8, metalness: 1, roughness: 0.26, envMapIntensity: 1.9, flatShading: true }),
+  hematite: new THREE.MeshStandardMaterial({ color: 0x2a2a30, metalness: 0.7, roughness: 0.2, flatShading: true }),
+};
+let seed = 500;
+const labGeo = () => mottle(rondelleGeo(true, 18, 8), seed++, 0x3b3e43, 0x1f2125, 0x2e5f8e, 2.2, -0.12);
+const disc = discGeo(0.42, 28);
+const axial = m => Object.assign(m, { userData: { axial: true } });
+
+/* labradorite run with a thin sterling disc between every rondelle */
+const labPath = D([[150, 575], [152, 610], [160, 645], [172, 678], [188, 710], [205, 740], [228, 768], [255, 793], [283, 815], [312, 836], [345, 854],
+  [385, 868], [425, 876], [465, 878], [500, 872], [532, 857], [560, 838], [585, 815], [605, 792], [620, 766], [633, 740], [642, 710], [648, 678],
+  [651, 645], [655, 613], [660, 580]]);
+const N = 27, LAB = 43, DISC = 7;
+const seq = [];
+for (let i = 0; i < N; i++) {
+  seq.push({ sec: 'lab', len: LAB, dia: 70, make: () => axial(mesh(labGeo(), MAT.lab)) });
+  if (i < N - 1) seq.push({ sec: 'spacer', len: DISC, dia: 30, make: () => axial(mesh(disc, M.silver)) });
+}
+const labIds = fitAlong(labPath, seq);
+
+/* sterling faceted beads up each side to the clasp, with a dark accent bead near the top */
+const nug = () => axial(mesh(gemGeo(1, 0.1, seed++), MAT.silverFacet));
+const leftPath = D([[148, 548], [140, 520], [135, 480], [137, 440], [143, 400], [152, 360], [163, 325], [180, 290], [200, 258], [225, 226], [255, 197], [290, 176], [322, 160], [347, 147]]);
+const rightPath = D([[663, 548], [672, 520], [678, 482], [676, 445], [668, 410], [654, 375], [637, 343], [615, 313], [590, 284], [565, 254], [540, 222], [515, 197], [490, 177], [462, 160], [448, 151]]);
+let leftIds = fillAlong(leftPath, { sec: 'nugget', len: 17, dia: 17, make: nug }, { gap: 0.5 });
+let rightIds = fillAlong(rightPath, { sec: 'nugget', len: 17, dia: 17, make: nug }, { gap: 0.5 });
+for (const [x, y, side] of [[295, 155, 'L'], [515, 172, 'R']]) {
+  const [px, py] = D([[x, y]])[0];
+  if (side === 'L') leftIds = knockout(leftIds, px, py, 11); else rightIds = knockout(rightIds, px, py, 11);
+  put('acc' + side, 'caps', mesh(gemGeo(1, 0.05, seed++), MAT.hematite), px, py, 16, 16, 0, 16);
+}
+
+/* end cones where the labradorite meets the sterling beads */
+const coneGeo = new THREE.LatheGeometry([[0.001, -1], [0.45, -1], [0.95, -0.35], [1, 0.1], [0.62, 1], [0.001, 1]].map(([r, y]) => new THREE.Vector2(r, y)), 32).rotateZ(Math.PI / 2);
+const [lx, ly] = D([[152, 557]])[0], [rx, ry] = D([[666, 556]])[0];
+put('coneL', 'caps', axial(mesh(coneGeo, M.silver)), lx, ly, 26, 32, -84, 32);
+put('coneR', 'caps', axial(mesh(coneGeo, M.silver)), rx, ry, 26, 32, -96, 32);
+items.coneL.obj.rotation.y = Math.PI / 2 - 0.1; items.coneR.obj.rotation.y = Math.PI / 2 + 0.1;
+
+/* lobster clasp, jump ring, extender chain and end ball */
+{
+  const g = new THREE.Group();
+  const body = mesh(blobGeo(41, 0.04, 40, 28), M.silver); body.scale.set(u(34), u(11), u(18)); body.position.y = u(11); g.add(body);
+  const gate = mesh(new THREE.TorusGeometry(u(15), u(4), 12, 32, Math.PI * 1.3), M.silver); gate.rotation.x = Math.PI / 2; gate.position.set(u(-26), u(6), 0); g.add(gate);
+  const trig = mesh(new THREE.BoxGeometry(u(8), u(6), u(5)), M.silver); trig.position.set(u(8), u(20), u(-10)); g.add(trig);
+  const eye = mesh(new THREE.TorusGeometry(u(7), u(2.6), 10, 24), M.silver); eye.rotation.x = Math.PI / 2; eye.position.set(u(38), u(2.6), 0); g.add(eye);
+  put('lobster', 'clasp', g, ...D([[378, 132]])[0], 80, 40, -12, 22, { scale: false, y: 0 });
+  const ring = mesh(new THREE.TorusGeometry(u(14), u(3), 12, 32), M.silver); ring.rotation.x = Math.PI / 2;
+  put('ring', 'clasp', group(ring), ...D([[430, 132]])[0], 30, 30, 0, 6, { scale: false });
+  let i = 0;
+  stringAlong(D([[445, 131], [470, 128], [500, 130], [525, 136], [546, 146], [555, 152]]), Array.from({ length: 30 }, () => ({ sec: 'clasp', len: 22, dia: 16, scale: false, y: 0, make: () => {
+    const l = mesh(new THREE.TorusGeometry(u(8.5), u(2.3), 10, 28), M.silver); l.scale.set(1.3, 1, 1);
+    if (i++ % 2) l.position.y = u(10.8); else { l.rotation.x = Math.PI / 2; l.position.y = u(2.3); }
+    return group(l);
+  } })), { gap: -4 });
+  put('ball', 'clasp', mesh(new THREE.SphereGeometry(1, 32, 20), M.silver), ...D([[566, 160]])[0], 20, 20, 0, 20);
+}
+orientAlong(labIds); orientAlong(leftIds); orientAlong(rightIds);
+wire([...[...leftIds].reverse(), 'coneL', ...labIds, 'coneR', ...rightIds], 'nugget', M.silver, 0.01, 0.1);
+finish();
+</script>
+</body>
+</html>
